@@ -1,21 +1,21 @@
-#!/bin/sh
+#!/bin/bash
 
 set -x
 
 
-finish() {
+function finishProc {
   # Your cleanup code here
   echo "Cleaning up"
-  kill "$SERVPID"
+  killall -q /usr/bin/python chromium-browser python
 }
-trap finish EXIT
+
+trap finishProc EXIT SIGINT SIGTERM
 
 projDir="$HOME/git/pithy"
 
 cd "$projDir"
 
 rubustat_web_interface.py &
-SERVPID=$!
 
 
 ./runBrowser
