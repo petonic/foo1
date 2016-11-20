@@ -4,6 +4,20 @@ body {
     margin:0;
     padding:0;
 }
+
+/* {2016-11-20 SUN 05:12} Petonic
+ * Added the following so that the buttons don't have the ability
+ * to select the + and - labels.  Gets sloppy with touchscreens.
+ */
+.plus, .minus {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 #header h1,
 #header h2,
 #header p {
