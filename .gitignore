@@ -1,0 +1,7 @@
+*.log
+*.pyc
+/logs/
+tempLogs.db
+*.pid
+mailconf.txt
+getIndoorTemp.py.orig
