@@ -9,6 +9,12 @@ from getIndoorTemp import getIndoorTemp
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash, jsonify
 
+# Gets rid of the irritating logfile messages
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
+
 app = Flask(__name__)
 #hard to be secret in open source... >.>
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
@@ -27,6 +33,7 @@ weatherEnabled = config.getboolean('weather','enabled')
 TH_FILE = config.get('main',"TEMP_HUM_FILE")
 
 print("TH_Files = <%s>"%TH_FILE)
+
 
 #start the daemon in the background, ignore errors
 subprocess.Popen("/usr/bin/python rubustat_daemon.py start", shell=True)
@@ -62,7 +69,7 @@ def getWhatsOn():
     return heatString + coolString + fanString
 
 def getDaemonStatus():
-    print "rwi: getDaemonStatus() called"
+    # print "rwi: getDaemonStatus() called"
     try:
         with open('rubustatDaemon.pid'):
             pid = int(subprocess.Popen("cat rubustatDaemon.pid", shell=True, stdout=subprocess.PIPE).stdout.read().strip())
@@ -84,17 +91,17 @@ def my_form():
     if weatherEnabled == True:
         try:
             datestring = subprocess.Popen("date", shell=True, stdout=subprocess.PIPE).stdout.read().strip()
-            print "rwi: my_form... Getting weather at {}".format(datestring)
+            #DBG print "rwi: my_form... Getting weather at {}".format(datestring)
             weatherString = getWeather()
         except:
             weatherString = "Couldn't get remote weather info! <br><br>"
     datestring = subprocess.Popen("date", shell=True, stdout=subprocess.PIPE).stdout.read().strip()
-    print "rwi: my_form... Returned from getWeather() at {}".format(datestring)
+    #DBG print "rwi: my_form... Returned from getWeather() at {}".format(datestring)
     
     whatsOn = getWhatsOn()
     
     datestring = subprocess.Popen("date", shell=True, stdout=subprocess.PIPE).stdout.read().strip()
-    print "rwi: my_form... Returned from getWhatsOn() at {}= <{}>".format(datestring, whatsOn)
+    #DBG print "rwi: my_form... Returned from getWhatsOn() at {}= <{}>".format(datestring, whatsOn)
     
 
     #find out what mode the system is in, and set the switch accordingly
@@ -104,7 +111,7 @@ def my_form():
 
     if mode == "heat":
         checked = ""
-    elif mode == "cool":
+    elif mode == "off":
         checked = "checked=\"checked\""
     else:
         checked = "Something broke"
@@ -125,7 +132,7 @@ def my_form_post():
     #and cool mode has been selected
 
     if 'onoffswitch' in request.form:
-        mode = "cool"
+        mode = "off"
     newTargetTemp = text.upper()
     match = re.search(r'^\d{2}$',newTargetTemp)
     if match:
@@ -154,7 +161,7 @@ def updateTemp():
 
 @app.route('/_liveWhatsOn', methods= ['GET'])
 def updateWhatsOn():
-
+    print 'app.debug is {}'.format(app.debug)
     return getWhatsOn()
 
 @app.route('/_liveDaemonStatus', methods= ['GET'])
@@ -164,4 +171,9 @@ def updateDaemonStatus():
 
 
 if __name__ == "__main__":
-    app.run("0.0.0.0", port=7000)
+    print '************* RUNNING AS MAIN ****************'
+    print '************* RUNNING AS MAIN ****************'
+    print '************* RUNNING AS MAIN ****************'
+    print '************* RUNNING AS MAIN ****************'
+    print '************* RUNNING AS MAIN ****************'
+    app.run("0.0.0.0", port=7000, debug=False)

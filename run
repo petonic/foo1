@@ -15,7 +15,9 @@ projDir="$HOME/git/pithy"
 
 cd "$projDir"
 
-rubustat_web_interface.py &
+rubustat_web_interface.py >/dev/null &
+
+# python tf.py &    # For debugging glask and web_interface issues
 
 
 ./runBrowser
