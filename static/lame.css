@@ -15,7 +15,7 @@ body {
     -khtml-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    user-select: none;
+    user-select: none;    
 }
 
 #header h1,
@@ -71,8 +71,17 @@ body {
 }
 /* --> */
 
-.plus { margin: 0.1em auto; width: 256px; line-height: 40px; border: 5px solid black; font-size: 30px; text-align: center; font-weight:bold; }
-.minus { margin: 0.1em auto; width: 256px; line-height: 40px; border: 5px solid black; font-size: 30px; text-align: center; font-weight:bold; }
+.plus, .minus {
+  margin: 0.1em auto;
+  width: 200px;
+  line-height: 120px;
+  border: 5px solid black;
+  font-size: 100px;
+  text-align: center;
+  font-weight: bold;
+  border: 2px solid #999999;
+  border-radius: 49px;
+}
 
 li {
     list-style: none;
@@ -88,7 +97,8 @@ li {
 input[type="text"] {
     font-size: 64pt;
     width: 200px;
-    text-align: center
+    text-align: center;
+    border: 2px solid #999999; border-radius: 49px;
 }
 p#currentTemp {
     font-size: 64pt;
@@ -96,7 +106,8 @@ p#currentTemp {
 }
 p#targetTemp {
     font-size: 64pt;
-    margin: 0px;
+    margin: 20px;
+    text-align: center;
 }
 p#daemonRunning{
     font-size: 16pt;
@@ -139,7 +150,7 @@ p#fanOn{
 /*the crazy switch bit*/
 
 .onoffswitch {
-position: relative; width: 125px;
+position: relative; width: 200px;
 -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
 }
 .onoffswitch-checkbox {
@@ -160,26 +171,26 @@ font-size: 14px; color: white; font-family: Trebuchet, Arial, sans-serif; font-w
 -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
 }
 .onoffswitch-inner:before {
-content: "Cool";
+content: "Off";
 padding-right: 80px;
 background-color: #2FCCFF; color: #FFFFFF;
 }
 .onoffswitch-inner:after {
-content: "Heat";
-padding-right: 10px;
+content: "AutoHeat";
+padding-right: 30px;
 background-color: #FF0000; color: #FFFFFF;
 text-align: right;
 }
 .onoffswitch-switch {
-width: 50px; margin: -5.5px;
+width: 50px; margin-left: -30px;
 background: #FFFFFF;
 border: 2px solid #999999; border-radius: 49px;
-position: absolute; top: 0; bottom: 0; right: 82px;
+position: absolute; top: 0; bottom: 0; right: 150px;
 -moz-transition: all 0.3s ease-in 0s; -webkit-transition: all 0.3s ease-in 0s;
 -o-transition: all 0.3s ease-in 0s; transition: all 0.3s ease-in 0s;
 }
 .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
-margin-left: 0;
+  margin-left: 0;
 }
 .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
 right: 0px;
