@@ -86,62 +86,73 @@ window.setInterval(function(){
 
 <body onload="updateTemp(); updateWhatsOn(); updateDaemonStatus();">
 
-<div id="header">
-<center>
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
-</center>
-<div id="container2">
-	<form action="." method="POST">
-	<div id="container1">
-		<div id="col1">
-			<center>
-			<br><br>
-			<div class="onoffswitch">
-				<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" {{ checked }}>
-				<label class="onoffswitch-label" for="myonoffswitch">
-						<div class="onoffswitch-inner"></div>
-						<div class="onoffswitch-switch"></div>
-				</label>
-			</div> 
-			<div class="plus" id="plus">+</div>
-            <div id="tempContainer">
-    			<input type="text" id="target" name="target" value={{ targetTemp }}>
-				<input type="submit" style="height: 75px; width: 75px" id="goButton" class="goButton" value="Go!">
+    <div id="container2">
+        <form action="." method="POST">
+            <div id="container1">
+                <div id="col1">
+                    <center>
+                        <br><br>
+                        <div class="onoffswitch">
+                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" {{ checked }}>
+                            <label class="onoffswitch-label" for="myonoffswitch">
+                                <div class="onoffswitch-inner"></div>
+                                <div class="onoffswitch-switch"></div>
+                            </label>
+                        </div> 
+                        <div class="plus" id="plus">+</div>
+                        <div class="cn">
+                            <div class="inner">                    
+                                <input type="text" id="target" name="target" value={{ targetTemp }}>
+                                <input type="submit" style="height: 75px; width: 75px" id="goButton" class="goButton" value="Go!">
+                            </div>
+                        </div>
+                        <div class="minus" id="minus">-</div>
+                        <br><br>
+
+                    </center>
+                </div>
+
+                <div id="col2">
+                    <div id="col22">
+                        <center>
+                            <!-- the heating / cooling switch -->
+                            <div class="switch">
+                                <center>
+                                    {{ weatherString|safe}}
+                                    <br>
+                                    <!-- center tags are basically the extent of my web design knowledge. -->
+                                    <!-- updated by the updateTemp() js function defined above -->
+                                    Current indoor temp: 
+                                    <p id="currentTemp"><span id="indoorTempDiv"></span>&deg;</p>
+                                    Current target temp:
+                                    <br>
+                                    <p id="targetTemp">{{targetTemp}}&deg;</p>
+                                    <span id="daemonStatusSpan"></span>
+                                    <span id="whatsOnSpan"></span>  
+                                </center>
+                            </div>
+                        </center>
+                    </dev>
+                </div>
             </div>
-			<div class="minus" id="minus">-</div>
-			<br><br>
+        </div>
+        <div id="header">
+            <center>
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                <ul class=flashes>
+                    {% for message in messages %}
+                    <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <ul class=flashes>
+                    <li></li>
+                </ul>
+                {% endif %}
+                {% endwith %}
+            </center>
+        </form>
+    </div>
+</body>
 
-		    </center>
-		</div>
-
-		<div id="col2">
-			<center>
-			<!-- the heating / cooling switch -->
-			<div class="switch">
-				<center>
-				{{ weatherString|safe}}
-				<br>
-				<!-- center tags are basically the extent of my web design knowledge. -->
-				<!-- updated by the updateTemp() js function defined above -->
-				Current indoor temp: 
-				<p id="currentTemp"><span id="indoorTempDiv"></span>&deg;</p>
-				Current target temp:
-				<br>
-				<p id="targetTemp">{{targetTemp}}&deg;</p>
-				<span id="daemonStatusSpan"></span>
-				<span id="whatsOnSpan"></span>
-				</center>
-			</div>
-			</center>
-		</div>
-	</div>
-	</form>
-</div>

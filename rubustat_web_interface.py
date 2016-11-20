@@ -90,17 +90,17 @@ def my_form():
     weatherString = ""
     if weatherEnabled == True:
         try:
-            datestring = subprocess.Popen("date", shell=True, stdout=subprocess.PIPE).stdout.read().strip()
+            #DBG: datestring = subprocess.Popen("date", shell=True, stdout=subprocess.PIPE).stdout.read().strip()
             #DBG print "rwi: my_form... Getting weather at {}".format(datestring)
             weatherString = getWeather()
         except:
             weatherString = "Couldn't get remote weather info! <br><br>"
-    datestring = subprocess.Popen("date", shell=True, stdout=subprocess.PIPE).stdout.read().strip()
+    #DBG: datestring = subprocess.Popen("date", shell=True, stdout=subprocess.PIPE).stdout.read().strip()
     #DBG print "rwi: my_form... Returned from getWeather() at {}".format(datestring)
     
     whatsOn = getWhatsOn()
     
-    datestring = subprocess.Popen("date", shell=True, stdout=subprocess.PIPE).stdout.read().strip()
+    #DBG: datestring = subprocess.Popen("date", shell=True, stdout=subprocess.PIPE).stdout.read().strip()
     #DBG print "rwi: my_form... Returned from getWhatsOn() at {}= <{}>".format(datestring, whatsOn)
     
 
@@ -161,7 +161,7 @@ def updateTemp():
 
 @app.route('/_liveWhatsOn', methods= ['GET'])
 def updateWhatsOn():
-    print 'app.debug is {}'.format(app.debug)
+    # print 'app.debug is {}'.format(app.debug)
     return getWhatsOn()
 
 @app.route('/_liveDaemonStatus', methods= ['GET'])
