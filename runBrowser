@@ -1,0 +1,4 @@
+#!/bin/sh
+
+
+chromium-browser --noerrdialogs --kiosk --incognito --disable-translate 0.0.0.0:7000

@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -x
+
+
+finish() {
+  # Your cleanup code here
+  echo "Cleaning up"
+  kill "$SERVPID"
+}
+trap finish EXIT
+
+projDir="$HOME/git/pithy"
+
+cd "$projDir"
+
+rubustat_web_interface.py &
+SERVPID=$!
+
+
+./runBrowser
+
+
+
