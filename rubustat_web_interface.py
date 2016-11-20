@@ -56,17 +56,13 @@ def getWhatsOn():
     # Must flip them because the relays are active LOW, and inactive HIGH
     heatStatus = 1 - GPIO.gpio_function(HEATER_PIN)
     fanStatus = 1 - GPIO.gpio_function(FAN_PIN)
-    coolStatus = 0
+    
+    headerStr = "<table>"
+    
+    heatString = "<tr><td>Heat:</td><td>{}</td></tr>".format("<font color='red'>ON" if heatStatus == 1 else "<font color='blue'>Off")
+    fanString = "<tr><td>Fan:</td><td>{}</td></tr>".format("<font color='blue'>ON" if fanStatus == 1 else "<font color='black'>Off")
+    return '<table>' + heatString + fanString + '</table>'
 
-    heatString = "<p id=\"heat\"> OFF </p>"
-    coolString = ""
-    fanString = "<p id=\"fan\"> OFF </p>"
-    if heatStatus == 1:
-        heatString = "<p id=\"heatOn\"> ON </p>"
-    if fanStatus == 1:
-        fanString = "<p id=\"fanOn\"> ON </p>"
-
-    return heatString + coolString + fanString
 
 def getDaemonStatus():
     # print "rwi: getDaemonStatus() called"
