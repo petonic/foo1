@@ -8,6 +8,58 @@ import RPi.GPIO as GPIO
 import datetime
 import ConfigParser
 import RPi.GPIO as GPIO
+import calendar
+from datetime import datetime, timedelta
+import pytz
+import pdb
+from tzlocal import get_localzone
+
+
+import pytz
+
+local_tz = pytz.timezone('US/Pacific-New') # use your local timezone name here
+# NOTE: pytz.reference.LocalTimezone() would produce wrong result here
+
+## You could use `tzlocal` module to get local timezone on Unix and Win32
+# from tzlocal import get_localzone # $ pip install tzlocal
+
+# # get local timezone    
+# local_tz = get_localzone()
+
+def utc_to_local(utc_dt):
+    local_dt = utc_dt.replace(tzinfo=pytz.utc).astimezone(local_tz)
+    return local_tz.normalize(local_dt) # .normalize might be unnecessary
+
+#                     	pgpio([FAN_PIN, HEATER_PIN], GPIO.HIGH)
+
+errstr = "-----------------------=======================\n\
+--------------------------\n\
+--------------------------\n\
+======= Message: {}\n\
+--------------------------\n\
+--------------------------\n\
+-----------------------======================="
+
+def repeat_to_length(string_to_expand, length):
+   return (string_to_expand * ((length/len(string_to_expand))+1))[:length]
+
+
+def errhdr(outch, inch, str):
+    ts = repeat_to_length(outch, 40)  + "\n"
+    ts += repeat_to_length(inch, 40)  + "\n"
+    ts += repeat_to_length(inch, 40)  + "\n"
+    ts += repeat_to_length(inch, 10) + ' Message: ' + str + "\n"
+    ts += repeat_to_length(inch, 40)  + "\n"
+    ts += repeat_to_length(inch, 40)  + "\n"
+    ts += repeat_to_length(outch, 40)  + "\n"
+    return(ts.format(str))
+    
+
+def pgpio(pins, state):
+    print >> sys.stderr, ('========\n===============\n===== -----GPIO-OUTPUT({},{})\n================\n========================'.format(pins, state))
+    GPIO.output(pins, state);
+    
+
 
 
 from daemon import Daemon
@@ -17,6 +69,20 @@ from getIndoorTemp import getIndoorTemp
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
+
+# Set local timezone
+local_tz = pytz.timezone('US/Pacific-New')
+
+def lnow():
+    print 'Got to lnow();;;;;;;;;;;;;;;;;;;;;;petonic ;;;;;;;;;;;;;;;;;;;;;;;;;;;'
+    utc_time = datetime.now()
+    tzone = get_localzone()
+    ltime = tzone.localize(utc_time)
+    
+    rts = utc_time.strftime("%Y-%m-%d %H:%M:%S")
+    return "///" + rts + "///"
+
+print "====================== ltime is <{}>".format(lnow())
 
 #read values from the config file
 config = ConfigParser.ConfigParser()
@@ -61,25 +127,23 @@ class rubustatDaemon(Daemon):
 
     def configureGPIO(self):
         GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
+        GPIO.setwarnings(True)
         GPIO.setup([HEATER_PIN, FAN_PIN], GPIO.OUT, initial=GPIO.HIGH)
 
     def getHVACState(self):
         # Must flip them because the relays are active LOW, and inactive HIGH
         GPIO.setmode(GPIO.BCM)
-        heatStatus = 1 - GPIO.gpio_function(HEATER_PIN)
-        fanStatus = 1 - GPIO.gpio_function(FAN_PIN)
-        coolStatus = 0
+        heatStatus = GPIO.gpio_function(HEATER_PIN)
+        fanStatus = GPIO.gpio_function(FAN_PIN)
+        print >> sys.stderr, ('============= HVAC Status after flipping: heat = %d, fan = %d at %s'%(heatStatus, fanStatus, lnow()))
+        
 
         if heatStatus == 1 and fanStatus == 1:
             #heating
             return 1
             
-        elif coolStatus == 1 and fanStatus == 1:
-            #cooling
-            return -1
 
-        elif heatStatus == 0 and coolStatus == 0 and fanStatus == 0:
+        elif heatStatus == 0  and fanStatus == 0:
             #idle
             return 0
 
@@ -87,28 +151,20 @@ class rubustatDaemon(Daemon):
             #broken
             return 2
 
-    def cool(self):
-        # GPIO.output(HEATER_PIN, False)
-        # GPIO.output(AC_PIN, True)
-        # GPIO.output(FAN_PIN, True)
-        return -1
 
     def heat(self):
-        GPIO.output(HEATER_PIN, 0)
-        # GPIO.output(AC_PIN, False)
-        GPIO.output(FAN_PIN, 0)
+        pgpio(HEATER_PIN, GPIO.LOW)
+        pgpio(FAN_PIN, GPIO.LOW)
         return 1
 
     def fan_to_idle(self): 
         #to blow the rest of the heated / cooled air out of the system
-        GPIO.output(HEATER_PIN, 1)
-        # GPIO.output(AC_PIN, False)
-        GPIO.output(FAN_PIN, 0)
+        pgpio(HEATER_PIN, GPIO.HIGH)
+        pgpio(FAN_PIN, GPIO.LOW)
 
     def idle(self):
-        GPIO.output(HEATER_PIN, 1)
-        # GPIO.output(AC_PIN, False)
-        GPIO.output(FAN_PIN, 1)
+        pgpio(HEATER_PIN, GPIO.HIGH)
+        pgpio(FAN_PIN, GPIO.HIGH)
         #delay to preserve compressor
         time.sleep(360)
         return 0
@@ -132,9 +188,8 @@ class rubustatDaemon(Daemon):
             session.quit()
 
     def run(self):
-        lastLog = datetime.datetime.now()
-        lastMail = datetime.datetime.now()
-        print "RDAEMON: Got to the RUN part, right above the While loop"
+        lastLog = datetime.now()
+        lastMail = datetime.now()
         self.configureGPIO()
         while True:
 
@@ -153,7 +208,7 @@ class rubustatDaemon(Daemon):
             mode = file.readline()
             file.close()
 
-            now = datetime.datetime.now()
+            now = datetime.now()
             logElapsed = now - lastLog
             mailElapsed = now - lastMail
 
@@ -162,9 +217,9 @@ class rubustatDaemon(Daemon):
             #it's 78, we want it to be 72, and the error threshold is 5 = this triggers
             if mailEnabled == True and (mailElapsed > datetime.timedelta(minutes=20)) and (indoorTemp - float(targetTemp) ) > errorThreshold:
                 self.sendErrorMail()
-                lastMail = datetime.datetime.now()
+                lastMail = datetime.now()
                 if DEBUG == 1:
-                    log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
+                    log = open("logs/debug_" + datetime.now().strftime('%Y%m%d') + ".log", "a")
                     log.write("MAIL: Sent mail to " + recipient + " at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
                     log.close()
 
@@ -172,82 +227,45 @@ class rubustatDaemon(Daemon):
             #it's 72, we want it to be 78, and the error threshold is 5 = this triggers
             if mailEnabled == True and (mailElapsed > datetime.timedelta(minutes=20)) and (float(targetTemp) - indoorTemp ) > errorThreshold:
                 self.sendErrorMail()
-                lastMail = datetime.datetime.now()
+                lastMail = datetime.now()
                 if DEBUG == 1:
-                    log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
+                    log = open("logs/debug_" + datetime.now().strftime('%Y%m%d') + ".log", "a")
                     log.write("MAIL: Sent mail to " + recipient + " at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
                     log.close()
 
 
             #logging actual temp and indoor temp to sqlite database.
             #you can do fun things with this data, like make charts! 
-            if logElapsed > datetime.timedelta(minutes=6) and sqliteEnabled:
+            if logElapsed > timedelta(minutes=6) and sqliteEnabled:
                 c.execute('INSERT INTO logging VALUES(?, ?, ?)', (now, indoorTemp, targetTemp))
                 conn.commit()
-                lastLog = datetime.datetime.now()
+                lastLog = datetime.now()
 
-                
-            # heater mode
+            # $hvacState has three values: 0=idle, 1=heating
+            print >> sys.stderr, errhdr("*","-", 'Top of Ifs in main loop: mode = <{}>, hvacState = {}'.format(mode, hvacState))
             if mode == "heat":
                 if hvacState == 0: #idle
                     if indoorTemp < targetTemp - inactive_hysteresis:
                         if DEBUG == 1:
-                            log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
-                            log.write("STATE: Switching to heat at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
+                            log = open("logs/debug_" + datetime.now().strftime('%Y%m%d') + ".log", "a")
+                            log.write("STATE: Switching to heat at " + lnow() + ", hvacState = %d\n"%hvacState)
                             log.close()
                         hvacState = self.heat()
 
                 elif hvacState == 1: #heating
                     if indoorTemp > targetTemp + active_hysteresis:
                         if DEBUG == 1:
-                            log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
-                            log.write("STATE: Switching to fan_to_idle at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
+                            log = open("logs/debug_" + datetime.now().strftime('%Y%m%d') + ".log", "a")
+                            log.write("STATE: Switching to fan idle at " + lnow() + ", hvacState = %d\n"%hvacState)
                             log.close()
                         self.fan_to_idle()
                         time.sleep(30)
                         if DEBUG == 1:
-                            log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
-                            log.write("STATE: Switching to idle at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
+                            log = open("logs/debug_" + datetime.now().strftime('%Y%m%d') + ".log", "a")
+                            log.write("STATE: Switching to idle at " + lnow() + ", hvacState = %d\n"%hvacState)
                             log.close()
                         hvacState = self.idle()
 
-                elif hvacState == -1: # it's cold out, why is the AC running?
-                        if DEBUG == 1:
-                            log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
-                            log.write("STATE: Switching to idle at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
-                            log.close()
-                        hvacState = self.idle()
-
-            # ac mode
-            elif mode == "cool":
-                if hvacState == 0: #idle
-                    if indoorTemp > targetTemp + inactive_hysteresis:
-                        if DEBUG == 1:
-                            log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
-                            log.write("STATE: Switching to cool at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
-                            log.close()
-                        hvacState = self.cool()
-
-                elif hvacState == -1: #cooling
-                    if indoorTemp < targetTemp - active_hysteresis:
-                        if DEBUG == 1:
-                            log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
-                            log.write("STATE: Switching to fan_to_idle at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
-                            log.close()
-                        self.fan_to_idle()
-                        time.sleep(30)
-                        if DEBUG == 1:
-                            log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
-                            log.write("STATE: Switching to idle at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
-                            log.close()
-                        hvacState = self.idle()
-
-                elif hvacState == 1: # it's hot out, why is the heater on?
-                        if DEBUG == 1:
-                            log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
-                            log.write("STATE: Switching to fan_to_idle at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + "\n")
-                            log.close()
-                        hvacState = self.idle()
             else:
                 print "It broke."
 
@@ -256,16 +274,20 @@ class rubustatDaemon(Daemon):
                 print "Geting to debug"
                 # Must flip them because the relays are active LOW, and inactive HIGH
                 GPIO.setmode(GPIO.BCM)
-                heatStatus = 1 - GPIO.gpio_function(HEATER_PIN)
-                fanStatus = 1 - GPIO.gpio_function(FAN_PIN)
-                coolStatus = 0
-                log = open("logs/debug_" + datetime.datetime.now().strftime('%Y%m%d') + ".log", "a")
-                log.write("Report at " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ":\n")
+                heatStatus = GPIO.gpio_function(HEATER_PIN)
+                fanStatus = GPIO.gpio_function(FAN_PIN)
+                log = open("logs/debug_" + datetime.now().strftime('%Y%m%d') + ".log", "a")
+                llt = utc_to_local(datetime.now())
+                
+                # lt = utc_to_local(time.strftime("%Y-%m-%d %H2:%M:%S", time.gmtime()))
+                # lt2 = lnow()
+                
+                log.write("=============== Debug on {}\n".format(lnow()))
+                
                 log.write("hvacState = " + str(hvacState)+ "\n")
                 log.write("indoorTemp = " + str(indoorTemp)+ "\n")
                 log.write("targetTemp = " + str(targetTemp)+ "\n")
                 log.write("heatStatus = " + str(heatStatus) + "\n")
-                log.write("coolStatus = " + str(coolStatus)+ "\n")
                 log.write("fanStatus = " + str(fanStatus)+ "\n")
                 log.close()
             
@@ -290,10 +312,9 @@ if __name__ == "__main__":
                         daemon.start()
                 elif 'stop' == sys.argv[1]:
                         #stop all HVAC activity when daemon stops
-                        # GPIO.output(AC_PIN, False)
                         GPIO.setmode(GPIO.BCM)
                         GPIO.setup([HEATER_PIN, FAN_PIN], GPIO.OUT, initial=GPIO.HIGH)
-                    	GPIO.output([FAN_PIN, HEATER_PIN], GPIO.HIGH)
+                    	pgpio([FAN_PIN, HEATER_PIN], GPIO.HIGH)
                     	GPIO.cleanup()
                         
                         daemon.stop()

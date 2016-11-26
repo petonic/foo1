@@ -9,11 +9,6 @@ from getIndoorTemp import getIndoorTemp
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash, jsonify
 
-# Gets rid of the irritating logfile messages
-import logging
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
-
 
 app = Flask(__name__)
 #hard to be secret in open source... >.>
@@ -32,7 +27,21 @@ DEBUG = int(config.get('main', 'DEBUG'))
 weatherEnabled = config.getboolean('weather','enabled')
 TH_FILE = config.get('main',"TEMP_HUM_FILE")
 
-print("TH_Files = <%s>"%TH_FILE)
+hline = "************************\n************************\n************************\n"
+
+
+print("%s: TH_Files = <%s>"%(hline, TH_FILE))
+
+Relay_channel = [FAN_PIN, HEATER_PIN]
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(Relay_channel, GPIO.OUT, initial=GPIO.HIGH)
+
+GPIO.output(Relay_channel[0], GPIO.LOW)
+
+
+
+
+
 
 
 #start the daemon in the background, ignore errors
@@ -51,11 +60,14 @@ if weatherEnabled == True:
         return string
 
 def getWhatsOn():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setwarnings(False)
+    # GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(True)
     # Must flip them because the relays are active LOW, and inactive HIGH
-    heatStatus = 1 - GPIO.gpio_function(HEATER_PIN)
-    fanStatus = 1 - GPIO.gpio_function(FAN_PIN)
+    print '=============\n=============   getWhatsOn() \n=============  '
+    heatStatus = GPIO.gpio_function(HEATER_PIN)
+    fanStatus = GPIO.gpio_function(FAN_PIN)
+    
+    print 'Heat Status ({}) is {}, and fanStatus({}) is {}'.format(HEATER_PIN, heatStatus, FAN_PIN, fanStatus)
     
     headerStr = "<table>"
     
@@ -83,6 +95,8 @@ def my_form():
     targetTemp = f.readline().strip()
     mode = f.readline()
     f.close()
+    print hline + "target temp is {}, mode is <{}>".format(targetTemp, mode)
+    
     weatherString = ""
     if weatherEnabled == True:
         try:
@@ -121,14 +135,15 @@ def my_form():
 def my_form_post():
 
     text = request.form['target']
-    mode = "heat"
+    mode = "off"
+    print "****************** Top of form_post"
 
-    #default mode to heat 
-    #cool if the checkbox is returned, it is checked
+    #default mode to off 
+    #heat if the checkbox is returned, it is checked
     #and cool mode has been selected
 
-    if 'onoffswitch' in request.form:
-        mode = "off"
+    if not 'onoffswitch' in request.form:
+        mode = "heat"
     newTargetTemp = text.upper()
     match = re.search(r'^\d{2}$',newTargetTemp)
     if match:

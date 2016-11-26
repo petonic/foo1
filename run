@@ -1,5 +1,6 @@
 #!/bin/bash
 
+debuglog=true
 set -x
 
 
@@ -15,12 +16,18 @@ projDir="$HOME/git/pithy"
 
 cd "$projDir"
 
-rubustat_web_interface.py >/dev/null &
+if [ ! $debuglog ]; then
+  rubustat_web_interface.py &
+  ./runBrowser
+else 
+  rubustat_web_interface.py &
+  ./runBrowser &
+  lf="logs/debug_`date -I | sed 's/-//g'`.log"
+  tail -f "$lf"
+fi
 
-# python tf.py &    # For debugging glask and web_interface issues
 
 
-./runBrowser
 
 
 

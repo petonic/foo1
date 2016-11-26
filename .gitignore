@@ -5,3 +5,5 @@ tempLogs.db
 *.pid
 mailconf.txt
 getIndoorTemp.py.orig
+status
+
