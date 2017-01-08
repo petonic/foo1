@@ -1,8 +1,0 @@
-#! /bin/sh
-
-#
-# Pipes two values into tfile
-
-tempfile="tfile"
-
-echo "$1\n$2" > "$tempfile"
