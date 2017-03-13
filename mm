@@ -14,4 +14,4 @@ for i in "$files"; do
   echo "    $i"
 done
 
-m --no-wait $files 
+mate --no-wait $files
