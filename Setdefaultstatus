@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+
+printf "72\noff" > status
+
+echo "Set default status"
+cat status

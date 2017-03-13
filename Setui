@@ -1,0 +1,63 @@
+#! /usr/bin/env python3
+
+"""
+Writes a "status(heat,off)\ntar_temp"  tuple into the status file to simulate
+temperature readings
+"""
+
+#
+# Pipes two values into tfile
+
+from sys import *
+from pdb import set_trace as bp
+
+import sys
+
+tfile = "status"
+
+
+
+def pusage(str):
+    print("Usage: {} <heat|off> [<target_temp>]: {}".format(argv[0], str),
+          file=sys.stderr)
+    sys.exit(9)
+
+targ_temp = -1.0
+
+if len(argv) < 2:
+    pusage("no params supplied")
+
+if len(argv) >= 2:
+  targ_mode = argv[1]
+if len(argv) == 3:
+  try:
+      targ_temp = float(argv[2])
+  except ValueError:
+      pusage("params must be numeric")
+
+if len(argv) > 3:
+        pusage("only max two parms allowed")
+
+#
+# Read the file, first
+#
+with open(tfile) as inf:
+  temp = inf.readline().rstrip('\n')
+  mode = inf.readline().rstrip('\n')
+
+if not(isinstance(temp, float)):
+  temp = -1.0
+
+print("Existing Mode = <{}>, Targ Temp = {:f}".format(mode, float(temp)))
+
+# If there is no existing file and there is no temperature specified,
+# then set it to 72
+if targ_temp < 0.0:
+  targ_temp = 72
+
+with open(tfile, mode="w") as outf:
+  print("{:d}\n{:s}".format(int(targ_temp), targ_mode), file=outf)
+
+print("Write NEW Mode = <{}>, Targ Temp = {:d}".format(targ_mode, int(targ_temp)))
+
+sys.exit(0)

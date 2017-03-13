@@ -5,7 +5,7 @@
 #
 
 projDir="$HOME/git/pithy"
-files="static/lame.css templates/form.html rubustat_daemon.py rubustat_web_interface.py"
+files="websrvd.py thermod.py config.txt static/lame.css templates/form.html"
 
 cd  "$projDir"
 

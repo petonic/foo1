@@ -1,3 +1,14 @@
+# Petonic's instructions
+
+## Run commands
+
+`run` -- runs the `webserver.py`, which will kick on the `daemon.py` if that isn't running already.
+
+`runBrowser` -- Starts the Chromium-Browser in Kiosk mode.
+
+
+
+
 # Changelog
 
 {2016-11-20 SUN 05:04} Added to my own github
