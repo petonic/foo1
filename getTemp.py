@@ -3,7 +3,7 @@
 # Based off the tutorial by adafruit here:
 # http://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing/software
 #
-# v1
+# v2
 #
 import Adafruit_DHT
 import ConfigParser

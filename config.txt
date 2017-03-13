@@ -1,19 +1,87 @@
-[main]
+############################################################ v1
+############################################################
+############################################################
+# TEMP SENSOR - used by getTemp, THERMOD and WebSvrd
+############################################################
+############################################################
+############################################################
+[temp sensor]
 
-#dictates logging
-DEBUG = 1
+# This pin is used by the i2C temperature sensor.
+# 27 is what I'm using.
+GPIO_PIN = 27
 
-# This is the file that the debugged rubustate_daemon.py will read
+# This is the file that we cache the temp&humid information in.  Format
+# is "TEMP\nHUMID[\nWriteTics]".  Both of the first values are floats with
+#  2 digits after the decimal place.  The last optional value is an int
+#  with the timestamp (tics) of the last successful read.
+ENVCACHE = "/tmp/p_env_cache"
+
+# This is the file that the getIndoorTemp.py program  will read
 # the temp and humidity (one value per line) from.  It only does
 # so if this value is set, otherwise it uses the DHT211 sensor from
 # the GPIOs below using the external getIndoorTemp.py.
+# This line must be present and uncommented NO MATTER WHAT, but if you
+# want to disable the debug functionality, just leave a blank value
+# after the equals sign.
+TEMP_HUM_FILE =
+# TEMP_HUM_FILE = "/home/pi/git/tfile"
 
-TEMP_HUM_FILE = tfile
+# Number of seconds to wait between temperature readings.
+GPIO_READ_INTERVAL = 5
+
+# With this many *consequetive* failures to read the GPIO temp sensor,
+# It will abort and send an email (defined below).
+MAX_FAILS_SECS = 60
+
+#
+# Location of the logfile
+LOGFILE = "/tmp/p_getTemp.log"
+
+DEBUG = True
+
+
+############################################################
+############################################################
+############################################################
+# THERMOD
+############################################################
+############################################################
+############################################################
+[thermod]
+STATUSFILE = "/tmp/p_thermod.status"
+PIDFILE = "/tmp/p_pidfile_thermod"
+LOGFILE = "/tmp/p_thermod.log"
+DEBUG = True
+
+
+############################################################
+############################################################
+############################################################
+# WEBSVRD
+############################################################
+############################################################
+############################################################
+[websrvd]
+DEBUG = 0
+
+############################################################
+############################################################
+############################################################
+# Main Miscellaneous
+############################################################
+############################################################
+############################################################
+[main]
+
+#dictates logging
+DEBUG = False
+
 
 #These two are difficult to explain.
 #Let's say we want it to be 75, and it's in cooling mode.
 #if the active_hysteresis is 0.5, it will cool to 74.5 before shutting off.
-#on the other side, if the inactive_hysteresis is 1, the system will allow 
+#on the other side, if the inactive_hysteresis is 1, the system will allow
 #the indoor temp to reach 76 before turning cooling back on.
 
 #adjust them to the particulars of your system / personal preference
@@ -27,19 +95,55 @@ FAN_PIN = 17
 
 #mail notifications to alert to potential hardware problems
 [mail]
-enabled = False
+enabled = True
 
 #how many degrees the indoor temperature can stray from the target
 #before sending alert email
-errorThreshold = 
+errorThreshold = 5.0
 
 #additional mail config (servers and such) is done in mailconf.txt
 
+############################################################
+############################################################
+############################################################
+# SQLITE Logging
+############################################################
+############################################################
+############################################################
 [sqlite]
-enabled = False
+enabled = True
+
+############################################################
+############################################################
+############################################################
+# Weather
+############################################################
+############################################################
+############################################################
+[weather]
 
 #if you want external weather data on the web UI
-[weather]
 enabled = False
 #your zip/postal code. No idea if this works outside the US.
 ZIP = 94956
+
+############################################################
+############################################################
+############################################################
+# EMAIL NOTIFICATIONS CONFIG
+############################################################
+############################################################
+############################################################
+#
+# Settings relating to sending email notifications.  Used by both
+# THERMOD and getTemp.py.
+#
+[mailconf]
+SMTP_SERVER = sf.petonic.com
+SMTP_PORT = 2526
+username = mike
+password = asdfZXC12
+sender = "Pithy Daemon Email" <mike@petonic.com>
+recipient = petonic@yahoo.com
+subject = Update from Pithy
+body = Body of message

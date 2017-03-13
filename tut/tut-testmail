@@ -1,0 +1,73 @@
+#! /usr/bin/env python2
+#
+# This tests the mail configuration of our Pithyd.  It uses the
+# normal config files (config.txt and mailconf.txt) that the daemon
+# does so there should be little confusion.
+# 
+
+import sys
+import subprocess
+import os
+import time
+import datetime
+import ConfigParser
+import calendar
+from datetime import datetime, timedelta
+import pytz
+import pdb
+from tzlocal import get_localzone
+import logging
+
+SMTP_SERVER = "DEFAULT SMTP_SERVER"
+SMTP_PORT = "DEFAULT SMTP_PORT"
+username = "DEFAULT username"
+password = "DEFAULT password"
+sender = "DEFAULT sender"
+recipient = "DEFAULT recipient"
+subject = "DEFAULT subject"
+body = "DEFAULT body"
+errorThreshold = 2.0
+
+
+config = ConfigParser.ConfigParser()
+config.read("config.txt")
+
+
+mailEnabled = config.getboolean('mail', 'enabled')
+if mailEnabled == True:
+  import smtplib
+
+  config.read("mailconf.txt")
+  SMTP_SERVER = config.get('mailconf', 'SMTP_SERVER')
+  SMTP_PORT = int(config.get('mailconf', 'SMTP_PORT'))
+  username = config.get('mailconf', 'username')
+  password = config.get('mailconf', 'password')
+  sender = config.get('mailconf', 'sender')
+  recipient = config.get('mailconf', 'recipient')
+  subject = config.get('mailconf', 'subject')
+  body = config.get('mailconf', 'body')
+
+  errorThreshold = float(config.get('mail', 'errorThreshold'))
+
+
+
+def sendErrorMail(str):
+  headers = ["From: " + sender,
+             "Subject: " + subject + str,
+             "To: " + recipient,
+             "MIME-Version: 1.0",
+             "Content-Type: text/html"]
+  headers = "\r\n".join(headers)
+  session = smtplib.SMTP_SSL("{}:{}".format(SMTP_SERVER, SMTP_PORT))
+  session.login(username, password)
+  session.sendmail(sender, recipient, headers + "\r\n\r\n" + body)
+  session.quit()
+
+def main():
+  from pdb import set_trace as bp
+  bp()
+
+  sendErrorMail("Test v1.1")
+
+if __name__ == '__main__':
+  main()

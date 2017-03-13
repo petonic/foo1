@@ -1,0 +1,16 @@
+#! /usr/bin/env python3
+"""
+Simple test program to toggle relay on and off
+while reading a line from the user each time.
+
+This is a compliment to another program that will try to
+set the same pin as input and read its status.
+"""
+import RPi.GPIO as GPIO
+
+
+ppin=4
+
+Relay_channel = [ppin]
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(Relay_channel, GPIO.OUT, initial=GPIO.HIGH)

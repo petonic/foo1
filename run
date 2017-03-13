@@ -7,7 +7,8 @@ set -x
 function finishProc {
   # Your cleanup code here
   echo "Cleaning up"
-  killall -q /usr/bin/python chromium-browser python
+  killall -q /usr/bin/python  python
+  # killall -q chromium-browser
 }
 
 trap finishProc EXIT SIGINT SIGTERM
@@ -16,18 +17,14 @@ projDir="$HOME/git/pithy"
 
 cd "$projDir"
 
+echo "debuglog is <$debuglog>"
+
 if [ ! $debuglog ]; then
-  rubustat_web_interface.py &
+  webserv.py &
   ./runBrowser
-else 
-  rubustat_web_interface.py &
+else
+  webserv.py &
   ./runBrowser &
   lf="logs/debug_`date -I | sed 's/-//g'`.log"
   tail -f "$lf"
 fi
-
-
-
-
-
-
