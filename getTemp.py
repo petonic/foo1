@@ -138,6 +138,7 @@ def getTemp():
       # IO error, this is fatal.
       log.fatal("Error reading / parsing Env Cache File ({}), error = {}"
                 .format(envCacheFile, e))
+      sys.exit(44)
     #
     # Check to see if the time delta isn't too long
     # If it is, then log it and terminate
