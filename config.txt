@@ -19,20 +19,25 @@ ENVCACHE = "/tmp/p_env_cache"
 
 # This is the file that the getIndoorTemp.py program  will read
 # the temp and humidity (one value per line) from.  It only does
-# so if this value is set, otherwise it uses the DHT211 sensor from
+# so if this value is set and the file exists, otherwise it uses the
+# DHT211 sensor from
 # the GPIOs below using the external getIndoorTemp.py.
 # This line must be present and uncommented NO MATTER WHAT, but if you
 # want to disable the debug functionality, just leave a blank value
-# after the equals sign.
-TEMP_HUM_FILE =
-# TEMP_HUM_FILE = "/home/pi/git/tfile"
+# after the equals sign, or delete the file.
+#
+# ./setTemp is a local util that will write to this file (or delete it).
+TEMP_HUM_FILE = "/home/pi/git/tfile"
 
 # Number of seconds to wait between temperature readings.
 GPIO_READ_INTERVAL = 5
 
 # With this many *consequetive* failures to read the GPIO temp sensor,
 # It will abort and send an email (defined below).
-MAX_FAILS_SECS = 60
+MAX_FAILS_SECS = 120
+
+# Maximum 'local' retries before it tries to use the cache file.
+MAX_RETRIES = 3
 
 #
 # Location of the logfile
@@ -48,6 +53,10 @@ DEBUG = True
 ############################################################
 ############################################################
 ############################################################
+
+# These files are localized to /tmp so that I can later make that into
+# a RAM filesystem to avoid wear and teat on the SD CARD.
+
 [thermod]
 STATUSFILE = "/tmp/p_thermod.status"
 PIDFILE = "/tmp/p_pidfile_thermod"
@@ -73,9 +82,6 @@ DEBUG = 0
 ############################################################
 ############################################################
 [main]
-
-#dictates logging
-DEBUG = False
 
 
 #These two are difficult to explain.

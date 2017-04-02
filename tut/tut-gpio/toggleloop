@@ -9,7 +9,7 @@ set the same pin as input and read its status.
 import RPi.GPIO as GPIO
 
 
-ppin=4
+ppin=[4, 17]
 
 Relay_channel = [ppin]
 GPIO.setmode(GPIO.BCM)

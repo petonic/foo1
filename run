@@ -20,11 +20,11 @@ cd "$projDir"
 echo "debuglog is <$debuglog>"
 
 if [ ! $debuglog ]; then
-  webserv.py &
+  ./websrvd.py &
   ./runBrowser
 else
-  webserv.py &
+  ./websrvd.py &
   ./runBrowser &
-  lf="logs/debug_`date -I | sed 's/-//g'`.log"
-  tail -f "$lf"
+  # lf="logs/debug_`date -I | sed 's/-//g'`.log"
+  # tail -f "$lf"
 fi

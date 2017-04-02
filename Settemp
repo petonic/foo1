@@ -9,33 +9,69 @@ temperature readings
 # Pipes two values into tfile
 
 from sys import *
-from pdb import set_trace as bp
+import configparser as ConfigParser
+import os
+
+config = ConfigParser.ConfigParser()
+config.read("config.txt")
+
+
+tfile = config.get('temp sensor',"TEMP_HUM_FILE").strip('"')
+
 
 import sys
 humid = 50
-tfile = "tfile"
+#  tfile = "tfile"
 
 
 # bp()
 
-def pusage(str):
-    print("Usage: {} <temp<float>> [<humid(int)>]".format(argv[0]),
+def pusage():
+    print("Usage:\t{} <temp<float>> [<humid(int)>]".format(argv[0]),
+          file=sys.stderr)
+    print("\t\tor",file=sys.stderr)
+    print("\t{} -c\t# Clear debug temp file".format(argv[0]), file=sys.stderr)
+    print("\t\tor",file=sys.stderr)
+    print("\t{} -l\t# List conents of temp file".format(argv[0]),
           file=sys.stderr)
     sys.exit(9)
 
+if len(argv) == 2:
+    if argv[1] == '-c':     # clear
+        print('Removing debug temp file %s'%repr(tfile))
+        try:
+            os.remove(tfile)
+        except Exception as e:
+            pass
+        sys.exit(0)
+    elif argv[1] == '-l':   # list
+        try:
+            with open(tfile, "r") as file:
+                ttemp = float(file.readline())
+                thumid = float(file.readline())
+                print('Listing debug file: temp={:-2.2f} humid={:-2.2f}'
+                          .format(ttemp, thumid))
+                sys.exit(0)
+        except IOError as e:
+            print('No debug temp file ({})'.format(repr(tfile)))
+            sys.exit(1)
+    else:
+        pusage()
+
+
 
 if len(argv) < 2:
-    pusage("no params supplied")
+    pusage()
 
 if len(argv) >= 2:
     try:
         temp = float(argv[1])
     except ValueError:
-        pusage("params must be numeric")
+        pusage()
 if len(argv) == 3:
     humid = int(argv[2])
 if len(argv) > 3:
-        pusage("only max two parms allowed")
+        pusage()
 
 
 outf = open(tfile, "w")

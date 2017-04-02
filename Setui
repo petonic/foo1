@@ -9,12 +9,23 @@ temperature readings
 # Pipes two values into tfile
 
 from sys import *
-from pdb import set_trace as bp
-
+import configparser as ConfigParser
 import sys
 
-tfile = "status"
+# ----------------------------------
+# - Read config
+# ----------------------------------
+config = ConfigParser.ConfigParser()
+config.read("config.txt")
+STATUS_FILE = config.get('thermod', "STATUSFILE").strip('"')
+thermo_DEBUG = config.getboolean('thermod', 'DEBUG')
 
+# if not config.getboolean('thermod', "DEBUG"):
+#     print( "{}: program is only useful if THERMOD is in "
+#           "DEBUG mode, and it's not. Exiting.".format(sys.argv[0]), file=sys.stderr)
+#     sys.exit(1)
+
+tfile = STATUS_FILE
 
 
 def pusage(str):
@@ -41,12 +52,26 @@ if len(argv) > 3:
 #
 # Read the file, first
 #
-with open(tfile) as inf:
-  temp = inf.readline().rstrip('\n')
-  mode = inf.readline().rstrip('\n')
 
-if not(isinstance(temp, float)):
-  temp = -1.0
+try:
+  with open(tfile) as inf:
+    tempStr = inf.readline().rstrip('\n')
+    mode = inf.readline().rstrip('\n')
+except Exception as e:
+  print("{}: error reading status file ({}): {}".format(
+      sys.argv[0], tfile, e.args[0]), file=sys.stderr)
+  print("...Using dummy default values", file=sys.stderr)
+  mode="<<<DUMMY>>>"
+  tempStr = "0.0"
+
+
+try:
+  temp = float(tempStr)
+except:
+  print("{}:warn:old temp is not a float {}".format(
+      sys.argv[0], repr(tempStr)), file=sys.stderr)
+  temp = -72.0
+
 
 print("Existing Mode = <{}>, Targ Temp = {:f}".format(mode, float(temp)))
 
