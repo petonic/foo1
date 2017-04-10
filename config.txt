@@ -99,6 +99,11 @@ HEATER_PIN = 04
 AC_PIN = 00
 FAN_PIN = 17
 
+# Number of seconds that the fan should run right after stopping the
+# Heater
+FAN_IDLE_TIME = 2
+COMPRESSOR_SAVE_TIME = 5
+
 #mail notifications to alert to potential hardware problems
 [mail]
 enabled = True
@@ -152,4 +157,4 @@ password = asdfZXC12
 sender = "Pithy Daemon Email" <mike@petonic.com>
 recipient = petonic@yahoo.com
 subject = Update from Pithy
-body = Body of message
+body = Heating is a bit out of whack, check Pithy

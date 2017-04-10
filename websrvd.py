@@ -1,8 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+#
+#
 import os
 import subprocess
 import re
-import ConfigParser
+import configparser as ConfigParser
 import wiringpi
 import datetime
 from datetime import datetime, timedelta

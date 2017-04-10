@@ -70,6 +70,9 @@ loglevel = logging.INFO
 if config.getboolean('temp sensor', "DEBUG"):
   loglevel = logging.DEBUG
 
+# This is to prevent warning spam while using the debugTempFile
+notify_if_file_not_found = True;
+notify_if_file_found = True;
 
 # create log
 log = logging.getLogger()
@@ -91,7 +94,7 @@ log.addHandler(ch)
 
 
 def __init__():
-    "********"; from pdb import set_trace as bp; bp(); "*************************************"
+  "********"; from pdb import set_trace as bp; bp(); "*************************************"
 
 
 #
@@ -114,6 +117,7 @@ def writeCacheFile(temp, humidity):
 def getTemp():
   global pin, envCacheFile, dbgTempFile, readInterval, maxFailsSecs,\
         logfile, loglevel, opt, maxRetries
+  global notify_if_file_found, notify_if_file_not_found
 
   # ----------------------------------------------
   # If we are configured to read the temp&humid from a file instead of
@@ -125,13 +129,17 @@ def getTemp():
           with open(dbgTempFile, "r") as file:
               ttemp = float(file.readline())
               thumid = float(file.readline())
-              log.debug("Using Debug Mode, temp={:-2.2f} humid={:-2.2f}"
+              if notify_if_file_found:
+                log.info("*** Using Debug Mode, temp={:-2.2f} humid={:-2.2f}"
                         .format(ttemp, thumid))
+                notify_if_file_found = False
               return [ttemp, thumid]
       except IOError as e:
           # Ignore this
-          log.debug('Using sensor, np dbgTempFile:{}'.format(dbgTempFile))
-          return []
+          if notify_if_file_not_found:
+            log.info('*** Using sensor, no dbgTempFile:{}'.format(dbgTempFile))
+            notify_if_file_not_found = False
+          # Continue execution and use the Sensor's data
 
   # ----------------------------------------------
   # Read the temp values
@@ -154,7 +162,7 @@ def getTemp():
     humidity, temperature = Adafruit_DHT.read(sensor, pin)
     if humidity and temperature:
       break
-    log.debug('... Local timeout on sensor, retrying {} more times'.format(
+    log.warning('... Local timeout on sensor, retrying {} more times'.format(
         maxRetries - i))
     sleep(2)
 

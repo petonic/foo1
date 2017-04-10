@@ -11,6 +11,7 @@ temperature readings
 from sys import *
 import configparser as ConfigParser
 import sys
+import subprocess
 
 # ----------------------------------
 # - Read config
@@ -29,14 +30,19 @@ tfile = STATUS_FILE
 
 
 def pusage(str):
-    print("Usage: {} <heat|off> [<target_temp>]: {}".format(argv[0], str),
-          file=sys.stderr)
-    sys.exit(9)
+  print('{}: Error with command line options, {}'.format(str))
+  print("Usage:\t{} <heat|off> [<target_temp>]: {}".format(argv[0], str),
+        file=sys.stderr)
+  sys.exit(9)
 
 targ_temp = -1.0
 
 if len(argv) < 2:
-    pusage("no params supplied")
+    # Just print the STATUSFILE
+    print('STATUS_FILE (%s) contains:'%repr(tfile))
+    output = subprocess.check_output(['cat',tfile], universal_newlines=True)
+    print(output, end='')
+    sys.exit(0)
 
 if len(argv) >= 2:
   targ_mode = argv[1]

@@ -71,6 +71,9 @@ if config.getboolean('thermod', "DEBUG"):
 active_hysteresis = float(config.get('main', 'active_hysteresis'))
 inactive_hysteresis = float(config.get('main', 'inactive_hysteresis'))
 
+fan_idle_time = int(config.get('main', 'FAN_IDLE_TIME'))
+compressor_save_time = int(config.get('main', 'COMPRESSOR_SAVE_TIME'))
+
 HEATER_PIN = int(config.get('main', 'HEATER_PIN'))
 AC_PIN = int(config.get('main', 'AC_PIN'))
 FAN_PIN = int(config.get('main', 'FAN_PIN'))
@@ -205,6 +208,9 @@ def getHVACState():
   heatStatus = 1 - wiringpi.digitalRead(HEATER_PIN)
   fanStatus = 1 - wiringpi.digitalRead(FAN_PIN)
 
+  log.debug('GHS: heatStatus={}, fanStatus={}'.format(
+          heatStatus, fanStatus))
+
   if heatStatus == 1 and fanStatus == 1:
     # heating
     return 1
@@ -224,14 +230,17 @@ def fan_to_idle():
   # to blow the rest of the heated / cooled air out of the system
   pgpio(HEATER_PIN, wiringpi.HIGH)
   pgpio(FAN_PIN, wiringpi.LOW)
-  time.sleep(30)
+  log.debug(".....\tfan_to_idle: going to sleep for {} seconds".
+            format(fan_idle_time))
+  time.sleep(fan_idle_time)
 
 
 def idle():
   pgpio(HEATER_PIN, wiringpi.HIGH)
   pgpio(FAN_PIN, wiringpi.HIGH)
   # delay to preserve compressor
-  log.debug(".....\tGoing to sleep for 45 seconds")
+  log.debug(".....\tidle: Going to sleep for {} seconds".
+            format(compressor_save_time))
   time.sleep(45)
   return 0
 
@@ -297,12 +306,13 @@ def run():
     # heat_mode -- check if beyond tolerance
     # it's 72, we want it to be 78, and the error threshold is 5 = this
     # triggers
-    if mailEnabled == True and (mailElapsed > timedelta(minutes=20)) and (float(targetTemp) - indoorTemp) > errorThreshold:
-      sendErrorMail('Heat beyond threshold ({} - {} > {} = {}'.format(
-          targetTemp, indoorTemp, errorThreshold,
-          float(targetTemp) - indoorTemp))
+    if mailEnabled == True and (mailElapsed > timedelta(minutes=20)) and \
+        (float(targetTemp) - indoorTemp) > errorThreshold:
+      sendErrorMail('Heat beyond threshold ({} - {} = {} > {}'.format(
+          targetTemp, indoorTemp, float(targetTemp) - indoorTemp,
+          errorThreshold))
       lastMail = datetime.now()
-      log.info("MAIL: Sent mail to " + recipient + " at " + now)
+      log.info("MAIL: Sent mail to " + recipient + " at " + now.strftime('%F %T'))
 
     # logging actual temp and indoor temp to sqlite database.
     # you can do fun things with this data, like make charts!
@@ -351,7 +361,7 @@ def run():
     # logging stuff
     heatStatus = 1 - wiringpi.digitalRead(HEATER_PIN)
     fanStatus = 1 - wiringpi.digitalRead(FAN_PIN)
-    log.debug("Report at " + lnow())
+    log.debug("Status at  " + lnow())
     log.debug("\tswitchMode = " + str(switchMode)+ "")
     log.debug("\thvacState = " + str(hvacState)+ "")
     log.debug("\tindoorTemp = " + str(indoorTemp)+ "")
