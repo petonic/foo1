@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# This script, when run on pithy:, will sync all files from
+# the development directory ~/git/pithy (which should be NFS mounted from
+# Kaypro) to the production directory ~/pithy
+#
+# [2017-06-03 SAT 12:24] 
+
+set -x
+
+rsync -av --exclude ".git/" ~/git/pithy/ ~/pithy/

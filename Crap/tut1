@@ -1,0 +1,32 @@
+#! /usr/bin/env python3
+
+import sys
+
+def mailFunc(*args):
+    print('MailFunction called with args below')
+    print('\t', end='')
+    print(args)
+
+
+def logDebug(*args):
+    print('REAL DEBUG called with args below')
+    print('\t', end='')
+    print(args)
+
+def main():
+    logDebug('Foobar bletch one arg');
+    # logDebug('Several args, no newline', end=None);
+    logDebug('Second calling of one arg');
+    logDebug('Logging to stderr', file=sys.stderr)
+
+
+if __name__ == '__main__':
+    from bdb import BdbQuit
+    try:
+        main()
+    except (BdbQuit,KeyboardInterrupt):
+        sys.exit(0)
+    except:
+        import pdb;
+        pdb.xpm()
+    pass

@@ -130,14 +130,17 @@ def getTemp():
               ttemp = float(file.readline())
               thumid = float(file.readline())
               if notify_if_file_found:
+                log.info("*** Found dbtTempFile: {}".format(dbgTempFile))
                 log.info("*** Using Debug Mode, temp={:-2.2f} humid={:-2.2f}"
                         .format(ttemp, thumid))
+
                 notify_if_file_found = False
               return [ttemp, thumid]
       except IOError as e:
           # Ignore this
           if notify_if_file_not_found:
-            log.info('*** Using sensor, no dbgTempFile:{}'.format(dbgTempFile))
+            log.debug('*** Normal mode -- Using sensor, no dbgTempFile:{}'.
+                format(dbgTempFile))
             notify_if_file_not_found = False
           # Continue execution and use the Sensor's data
 
@@ -232,7 +235,7 @@ if __name__ == "__main__":
 
 
 
-  print('*********** Calling MAIN()',file=sys.stderr)
+  # print('*********** Calling MAIN()',file=sys.stderr)
 
   log.propagate = True        # Make logging appear on STDERR/OUT
 

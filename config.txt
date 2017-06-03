@@ -72,7 +72,7 @@ DEBUG = True
 ############################################################
 ############################################################
 [websrvd]
-DEBUG = 0
+DEBUG = False
 
 ############################################################
 ############################################################
@@ -95,7 +95,9 @@ DEBUG = 0
 active_hysteresis = 0.5
 inactive_hysteresis = 1
 
-HEATER_PIN = 04
+# There is No AC_PIN in the PRS configuration
+
+HEATER_PIN = 22
 AC_PIN = 00
 FAN_PIN = 17
 
@@ -152,9 +154,9 @@ ZIP = 94956
 [mailconf]
 SMTP_SERVER = sf.petonic.com
 SMTP_PORT = 2526
-username = mike
+username = logger
 password = asdfZXC12
-sender = "Pithy Daemon Email" <mike@petonic.com>
+sender = "Pithy Daemon Email" <logger@petonic.com>
 recipient = petonic@yahoo.com
 subject = Update from Pithy
-body = Heating is a bit out of whack, check Pithy
+email_body_prefix = Heating is a bit out of whack, check Pithy!

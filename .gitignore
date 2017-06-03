@@ -6,3 +6,6 @@ __pycache__/
 tfile
 log.*
 rconsole*
+.AppleDouble
+.atom-nfs
+rnfs.log
