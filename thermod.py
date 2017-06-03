@@ -45,7 +45,6 @@ import os
 import time
 import datetime
 import dateutil.parser
-import configparser as ConfigParser
 import calendar
 from datetime import datetime, timedelta
 import pytz
@@ -57,7 +56,9 @@ import wiringpi
 # ----------------------------------
 # - Read config and set up logging -
 # ----------------------------------
-config = ConfigParser.ConfigParser()
+from configparser import SafeConfigParser
+config = SafeConfigParser(os.environ)
+
 config.read("config.txt")
 log = logging.getLogger()
 
@@ -213,9 +214,6 @@ def getHVACState():
     heatStatus = 1 - wiringpi.digitalRead(HEATER_PIN)
     fanStatus = 1 - wiringpi.digitalRead(FAN_PIN)
 
-    log.debug('GHS: heatStatus(pin {})={}, fanStatus(pin {})={}'
-              .format(HEATER_PIN, heatStatus, FAN_PIN, fanStatus))
-
     if heatStatus == 1 and fanStatus == 1:
         # heating
         return 1
@@ -366,9 +364,18 @@ def run():
             defStatus = 'off'
             # Set default operation modes if the statusfile isn't found.
             targetTemp = 70.0
-            log.warn('Cannot find STATUS_FILE {}, so defaulting to {} / {}'.
-                format(STATUS_FILE, targetTemp, defStatus))
             switchMode = defStatus
+            log.warn('Error reading STATUS_FILE {}, so writing ( {} / {} )'
+                'to it\nReason: {}'. format(STATUS_FILE, targetTemp, defStatus,
+                repr(e)))
+            # Rewrite the STATUS_FILE so that we aren't in this error
+            # state and we don't keep on spewing messages.
+            try:
+              with open(STATUS_FILE, "w") as ofile:
+                print('{:f}\n{}'.format(targetTemp, switchMode),file=ofile)
+            except IOError:
+                log.error('Cannot re-write missing STATUS_FILE {}'.format(
+                  STATUS_FILE))
 
         # Log values so far
         log.debug('Target Temp = %f, Switch = %s' % (targetTemp, switchMode))

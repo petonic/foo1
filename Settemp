@@ -21,7 +21,6 @@ tfile = config.get('temp sensor',"TEMP_HUM_FILE").strip('"')
 
 import sys
 humid = 50
-#  tfile = "tfile"
 
 
 # bp()

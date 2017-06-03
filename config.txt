@@ -1,10 +1,19 @@
-############################################################ v1
 ############################################################
+# DEFAULTS
+############################################################
+
+[DEFAULT]
+
+# This is the base project directory to execute from.
+base_dir = /home/pi/git/pithy
+
+# These are where the logfles will be.
+log_dir = /tmp
+
 ############################################################
 # TEMP SENSOR - used by getTemp, THERMOD and WebSvrd
 ############################################################
-############################################################
-############################################################
+
 [temp sensor]
 
 # This pin is used by the i2C temperature sensor.
@@ -17,6 +26,8 @@ GPIO_PIN = 27
 #  with the timestamp (tics) of the last successful read.
 ENVCACHE = "/tmp/p_env_cache"
 
+##################
+# For Debugging ...
 # This is the file that the getIndoorTemp.py program  will read
 # the temp and humidity (one value per line) from.  It only does
 # so if this value is set and the file exists, otherwise it uses the
@@ -27,7 +38,8 @@ ENVCACHE = "/tmp/p_env_cache"
 # after the equals sign, or delete the file.
 #
 # ./setTemp is a local util that will write to this file (or delete it).
-TEMP_HUM_FILE = "/home/pi/git/tfile"
+
+TEMP_HUM_FILE = %(base_dir)s/tfile
 
 # Number of seconds to wait between temperature readings.
 GPIO_READ_INTERVAL = 5
@@ -41,45 +53,33 @@ MAX_RETRIES = 3
 
 #
 # Location of the logfile
-LOGFILE = "/tmp/p_getTemp.log"
+LOGFILE = %(log_dir)s/p_getTemp.log
 
 DEBUG = True
 
 
 ############################################################
-############################################################
-############################################################
 # THERMOD
-############################################################
-############################################################
 ############################################################
 
 # These files are localized to /tmp so that I can later make that into
 # a RAM filesystem to avoid wear and teat on the SD CARD.
 
 [thermod]
-STATUSFILE = "/tmp/p_thermod.status"
-PIDFILE = "/tmp/p_pidfile_thermod"
-LOGFILE = "/tmp/p_thermod.log"
+STATUSFILE = %(log_dir)s/p_thermod.status
+PIDFILE = %(log_dir)s/p_pidfile_thermod
+LOGFILE = %(log_dir)s/tmp/p_thermod.log
 DEBUG = True
 
 
 ############################################################
-############################################################
-############################################################
 # WEBSVRD
-############################################################
-############################################################
 ############################################################
 [websrvd]
 DEBUG = False
 
 ############################################################
-############################################################
-############################################################
 # Main Miscellaneous
-############################################################
-############################################################
 ############################################################
 [main]
 
@@ -116,22 +116,15 @@ errorThreshold = 5.0
 
 #additional mail config (servers and such) is done in mailconf.txt
 
-############################################################
-############################################################
+
 ############################################################
 # SQLITE Logging
-############################################################
-############################################################
 ############################################################
 [sqlite]
 enabled = True
 
 ############################################################
-############################################################
-############################################################
 # Weather
-############################################################
-############################################################
 ############################################################
 [weather]
 
@@ -141,12 +134,9 @@ enabled = False
 ZIP = 94956
 
 ############################################################
-############################################################
-############################################################
 # EMAIL NOTIFICATIONS CONFIG
 ############################################################
-############################################################
-############################################################
+
 #
 # Settings relating to sending email notifications.  Used by both
 # THERMOD and getTemp.py.
