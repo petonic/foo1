@@ -1,0 +1,60 @@
+[formatters]
+keys: detailed,simple
+
+[handlers]
+keys: console,file_root,file_thermod,file_websrvd,file_getTemp
+
+[loggers]
+keys: root,thermod,websrvd,api
+
+[formatter_simple]
+format: %(levelname)s: %(message)s
+
+[formatter_detailed]
+format: %(module)s:%(levelname)s:%(asctime)s:%(funcName)s(): %(message)s
+
+[handler_console]
+class: StreamHandler
+args: []
+formatter: simple
+
+[handler_file_root]
+class: FileHandler
+args: ['lroot.log']
+level: NOTSET
+formatter: detailed
+
+[handler_file_thermod]
+class: FileHandler
+args: ['lthermod.log']
+formatter: detailed
+level: WARNING
+
+[handler_file_websrvd]
+class: FileHandler
+args: ['lwebsrvd.log']
+formatter: detailed
+
+[handler_file_getTemp]
+class: FileHandler
+args: ['lgetTemp.log']
+formatter: detailed
+
+[logger_root]
+level: WARNING
+handlers: file_root
+
+[logger_thermod]
+level: WARNING
+qualname: com.petonic.pithy.thermod
+handlers: console,file_thermod
+
+[logger_websrvd]
+level: DEBUG
+qualname: com.petonic.pithy.websrvd
+handlers: console
+
+[logger_api]
+level: WARNING
+qualname: com.petonic.pithy.getTemp
+handlers: console

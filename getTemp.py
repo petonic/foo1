@@ -62,11 +62,12 @@ config.read("config.txt")
 pin = config.getint('temp sensor', "GPIO_PIN")
 envCacheFile = config.get('temp sensor', 'ENVCACHE').strip('"')
 dbgTempFile = config.get('temp sensor',"TEMP_HUM_FILE").strip('"')
+thfLockfile = config.get('temp sensor',"THF_LOCKFILE").strip('"')
 readInterval = config.getint('temp sensor', "GPIO_READ_INTERVAL")
 maxFailsSecs = config.getint('temp sensor', "MAX_FAILS_SECS")
 maxRetries = config.getint('temp sensor', "MAX_RETRIES")
 logfile = config.get('temp sensor', "LOGFILE").strip('"')
-loglevel = logging.INFO
+loglevel = logging.WARNING
 if config.getboolean('temp sensor', "DEBUG"):
   loglevel = logging.DEBUG
 
@@ -74,27 +75,16 @@ if config.getboolean('temp sensor', "DEBUG"):
 notify_if_file_not_found = True;
 notify_if_file_found = True;
 
-# create log
-log = logging.getLogger()
-log.setLevel(loglevel)
-# create file handler which logs even debug messages
-fh = logging.FileHandler(logfile)
-fh.setLevel(loglevel)
-# create console handler with a higher log level
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-# create formatter and add it to the handlers
-formatterF = logging.Formatter('%(asctime)s:%(processName)s:%(levelname)s:%(message)s')
-formatterC = logging.Formatter('%(filename)s: %(message)s')
-fh.setFormatter(formatterF)
-ch.setFormatter(formatterC)
-# add the handlers to the log
-log.addHandler(fh)
-log.addHandler(ch)
+# ----------------------------------
+# - Set up logging                 -
+# ----------------------------------
 
+import logging.config
+logging.config.fileConfig('config.logger')
 
-def __init__():
-  "********"; from pdb import set_trace as bp; bp(); "*************************************"
+log = logging.getLogger('com.petonic.pithy.getTemp')
+
+print('loglevel == {}, logDEBUG = {}'.format(log.level, logging.DEBUG))
 
 
 #
@@ -125,25 +115,49 @@ def getTemp():
   # ----------------------------------------------
 
   if dbgTempFile:
+    def readFloat(infile, filename):
       try:
-          with open(dbgTempFile, "r") as file:
-              ttemp = float(file.readline())
-              thumid = float(file.readline())
-              if notify_if_file_found:
-                log.info("*** Found dbtTempFile: {}".format(dbgTempFile))
-                log.info("*** Using Debug Mode, temp={:-2.2f} humid={:-2.2f}"
-                        .format(ttemp, thumid))
+        tstr = infile.readline().strip()
+        rval = float(tstr)
+      except Exception as e:
+        log.warn('Error reading float from file {}, '
+         'tstr=<{}>\nReason: {}, using sensor data'.
+         format(filename, tstr, repr(e)))
+        raise ValueError
+      return(rval)
 
-                notify_if_file_found = False
-              return [ttemp, thumid]
-      except IOError as e:
-          # Ignore this
-          if notify_if_file_not_found:
-            log.debug('*** Normal mode -- Using sensor, no dbgTempFile:{}'.
-                format(dbgTempFile))
-            notify_if_file_not_found = False
-          # Continue execution and use the Sensor's data
+    import filelock
+    thfLock = filelock.FileLock(thfLockfile)
 
+    with thfLock.acquire(timeout=10):
+      try:
+        with open(dbgTempFile, "r") as infile:
+          ttemp = readFloat(infile, dbgTempFile)
+          thumid = readFloat(infile, dbgTempFile)
+        if notify_if_file_found:
+          log.info("*** Found dbtTempFile: {}".
+           format(dbgTempFile))
+          log.info('*** Using Debug Mode, temp={:-2.2f} '
+           'humid={:-2.2f}'.format(ttemp, thumid))
+
+          notify_if_file_found = False
+        return [ttemp, thumid]
+      except filelock.Timeout as e:
+        # This is fatal because getTemp should be able to acquire
+        # a lock after 10 seconds under any normal circumstance.
+        log.fatal('Cannot acquire TH Debug file ({})'
+         ' lock ({}) for 10 secs:'
+         ' {}'.format(dbgTempFile, thfLockfile, repr(e)))
+        sys.exit(121)
+      except Exception as e:
+        # Ignore this
+        if notify_if_file_not_found:
+          log.info('*** Normal mode -- Using sensor, '
+           'no dbgTempFile:{} or error: {}'.format(dbgTempFile,
+           repr(e)))
+          notify_if_file_not_found = False
+
+  # Continue execution and use the Sensor's data
   # ----------------------------------------------
   # Read the temp values
   # if Successful:
@@ -165,7 +179,7 @@ def getTemp():
     humidity, temperature = Adafruit_DHT.read(sensor, pin)
     if humidity and temperature:
       break
-    log.warning('... Local timeout on sensor, retrying {} more times'.format(
+    log.info('... Local timeout on sensor, retrying {} more times'.format(
         maxRetries - i))
     sleep(2)
 
@@ -213,7 +227,7 @@ def getTemp():
     #
     # Got a valid set from the cache, log it and return those values
     #
-    log.error("Error reading GPIO, using valid cache: age = {}".format(
+    log.debug("Error reading GPIO, using valid cache: age = {}".format(
               now - cLastTime))
     retval = [cTemp, cHumid]
     return retval

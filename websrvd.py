@@ -3,6 +3,7 @@
 #
 import os
 import subprocess
+import sys
 import re
 import configparser as ConfigParser
 import wiringpi
@@ -15,13 +16,11 @@ from flask import Flask, request, session, g, redirect, url_for, \
 
 
 
-# import remote_pdb
-# def bp():
-#   remote_pdb.set_trace('0.0.0.0',4444)
-from pdb import set_trace as bp
 
-# Global DEBUG variable declaration so that functions can see it.
+# Global debug variable declaration so that functions can see it.
 debug=False
+lastFlash = datetime(1970, 1, 1, 0, 0)
+flashCleared = True
 
 app = Flask(__name__)
 #hard to be secret in open source... >.>
@@ -31,42 +30,31 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
-config = ConfigParser.ConfigParser()
+from configparser import SafeConfigParser
+config = SafeConfigParser(os.environ)
+
 config.read("config.txt")
+
 ZIP = config.get('weather','ZIP')
 HEATER_PIN = int(config.get('main','HEATER_PIN'))
 FAN_PIN = int(config.get('main','FAN_PIN'))
+STATUS_FILE = config.get('thermod', "STATUSFILE").strip('"')
+PID_FILE = config.get('thermod', "PIDFILE").strip('"')
+FLASH_DUR = int(config.get('websrvd', 'FLASH_DUR'))
 weatherEnabled = config.getboolean('weather','enabled')
 
-#
-# Set up logging for WEBSRVd
-#
-import logging
-log = logging.getLogger()
-# Make it skip printing to stderr
-log.propagate = False
-websvrd_DEBUG = config.getboolean('websrvd', 'DEBUG')
 
-DEBUG=websvrd_DEBUG
-# create file handler which logs even debug messages
-fh = logging.FileHandler('log.websrvd.dbg')
-fh.setLevel(logging.DEBUG)
-log.addHandler(fh)
-# create file handler which logs Info and real errors
-fh = logging.FileHandler('log.websrvd')
-fh.setLevel(logging.INFO)
-log.addHandler(fh)
+# ----------------------------------
+# - Set up logging                 -
+# ----------------------------------
 
+import logging.config
+logging.config.fileConfig('config.logger')
 
-if (websvrd_DEBUG):
-  log.setLevel("DEBUG")
-else:
-  log.setLevel("INFO")
+log = logging.getLogger('com.petonic.pithy.websrvd')
 
-log.debug("websvrd_DEBUG=<{}>, debug=<{}>".format(websvrd_DEBUG, debug))
+print('loglevel == {}, logDEBUG = {}'.format(log.level, logging.DEBUG))
 
-#start the daemon in the background, ignore errors
-# subprocess.Popen("/usr/bin/python daemon.py start", shell=True)
 
 if weatherEnabled == True:
     import pywapi
@@ -103,49 +91,107 @@ def gpioInitSetup():
   # By default, we turn off the heater and the FAN when
   # we first startup.  No harm done because THERMOD will
   # put them back on if that's the state that's config'd
-  # in "status"
+  # in STATUS_FILE
   #
   wiringpi.pinMode(HEATER_PIN, 1)       # Output mode
   wiringpi.digitalWrite(HEATER_PIN, 1)  # Pins are activeHI, so turn off.
   wiringpi.pinMode(FAN_PIN, 1)      # Output mode
   wiringpi.digitalWrite(FAN_PIN, 1)  # Pins are activeHI, so turn off.
 
+def gpioRead(pinNum):
+    """int gpioRead(int pinNum)
+    Reads the specified GPIO pin using the
+
+    /sys/class/gpio/gpioN/value filesystem scheme."""
+    devFile = '/sys/class/gpio/gpio{}/value'.format(pinNum)
+    try:
+      with open(devFile, "r") as infile:
+        retVal = int(infile.readline())
+    except Exception as e:
+        log.fatal('Cannot read the file ({}).  Is thermod '
+            'running?  Major error: {}'.format(
+            devFile, repr(e)))
+        sys.exit(200)
+    return retVal
+
+def tempFlash(msg):
+    """ void tempFlash(str)
+
+    Prints a flash message on the web page for default duration (see config).
+    """
+
+    global flashCleared, lastFlash
+
+    lastFlash = datetime.now()
+    log.debug('*** Setting tempFlash to {}: {}'.format(
+      lastFlash.strftime("%Y-%m-%d %H:%M:%S"), msg))
+
+    flashCleared = False
+    flash(msg)
+
 
 def getWhatsOn():
+    global flashCleared, lastFlash
+    #
+    # Use /sys/class/gpio/gpio{HEATER,FAN}/value to read the
+    # status because wiringPI always returns 0 for some reason, or
+    # worse, you have to be root to access them.  That's bad for
+    # a web server.... :-(
+    # This is not time critical.  That much.
+    #
     # Must flip them because the relays are active LOW, and inactive HIGH
     #
-    heatStatus = 1 - wiringpi.digitalRead(HEATER_PIN)
-    fanStatus = 1 - wiringpi.digitalRead(FAN_PIN)
+    heatStatus = 1 - gpioRead(HEATER_PIN)
+    fanStatus = 1 - gpioRead(FAN_PIN)
 
-    dprint ( '======== getWhatsOnL Heat Status ({}) is {}, and fanStatus({}) is {}'.format(HEATER_PIN, heatStatus, FAN_PIN, fanStatus))
+    # log.debug('WhatsOn: Heat = {}, Fan = {}'.format(heatStatus, fanStatus))
+
+    #
+    # Reset the flash() message if it's been up long enough.
+    #
+    now = datetime.now()
+    # log.debug('Now is set to {}'.format(now))
+    flashElapsed = now - lastFlash
+    # log.none('flashElapsed is set to {}'.format(flashElapsed))
+    # log.debug('flashCleared is set to {}'.format(flashCleared))
+    # log.debug('FLASH_DUR is set to {}'.format(FLASH_DUR))
+
+    if ((not flashCleared) and
+      (flashElapsed > timedelta(seconds=FLASH_DUR))):
+        log.debug('**** Cleared the flash message')
+        flashCleared = True
+        flash(" ")
+
 
     headerStr = "<table>"
 
-    heatString = "<tr><td>Heat:</td><td>{}</td></tr>".format("<font color='red'>ON" if heatStatus == 1 else "<font color='blue'>Off")
+    heatString = "<tr><td>Heat:</td><td>{}</td></tr>".format("<font color='red'>ON" if heatStatus == 1 else "<font color='black'>Off")
     fanString = "<tr><td>Fan:</td><td>{}</td></tr>".format("<font color='blue'>ON" if fanStatus == 1 else "<font color='black'>Off")
     return '<table>' + heatString + fanString + '</table>'
 
 
 def getDaemonStatus():
-    # print "rwi: getDaemonStatus() called"
     try:
-        with open('.thermod.pid') as infile:
+        with open(PID_FILE) as infile:
             pid = int(infile.readline().rstrip('\n'))
             try:
                 os.kill(pid, 0)
-                return "<p id=\"daemonRunning\"> Daemon is running. </p>"
+                return "<p id=\"daemonRunning\">Daemon is running</p>"
             except OSError:
-                return "<p id=\"daemonNotRunning\"> DAEMON IS NOT RUNNING. </p>"
+                return "<p id=\"daemonNotRunning\" class=\"blink_me\">DAEMON IS NOT RUNNING</p>"
     except IOError:
         return "<p id=\"daemonNotRunning\"> (no pidfile) DAEMON IS NOT RUNNING. </p>"
 
 @app.route('/')
 def my_form():
-    f = open("status", "r")
-    targetTemp = f.readline().strip()
-    targetTemp = int(targetTemp)
-    mode = f.readline().rstrip('\n')
-    f.close()
+    try:
+      with open(STATUS_FILE, "r") as file:
+          targetTemp = float(file.readline().strip())
+          mode = file.readline().rstrip('\n')
+    except IOError:
+        log.fatal("Error getting status from {}. Is thermod running?".
+            format(STATUS_FILE))
+        sys.exit(121)
     log.debug("MY_FORM: target temp is {}, mode is <{}>".
               format(targetTemp, mode))
 
@@ -173,7 +219,8 @@ def my_form():
     log.debug("*** Right before Rendering template, checked = <{}>".
            format(checked))
 
-    rv =render_template("form.html", targetTemp = targetTemp, \
+    log.debug('Rendering template')
+    rv =render_template("form.html", targetTemp = int(targetTemp), \
                                         weatherString = weatherString, \
                                         checked = checked, \
                                         daemonStatus = daemonStatus, \
@@ -184,16 +231,21 @@ def my_form():
 
 @app.route("/", methods=['POST'])
 def my_form_post():
+    global lastFlash, flashCleared
 
     text = request.form['target']
     mode = "off"
     dprint( "****************** Top of form_post")
 
-    with open("status","r") as f:
-      targetTemp = f.readline().strip()
-      targetTemp = int(targetTemp)
-      # targetTemp = int("12")
-      mode = f.readline().rstrip('\n')
+    try:
+        with open(STATUS_FILE,"r") as f:
+            targetTemp = float(f.readline().strip())
+            # targetTemp = int("12")
+            mode = f.readline().rstrip('\n')
+    except Exception as e:
+        log.fatal('my_form_post: Cannot read status file ({}): {}'.format(
+            STATUS_FILE, repr(e)))
+
 
 
 
@@ -216,13 +268,13 @@ def my_form_post():
     newTargetTemp = text.upper()
     match = re.search(r'^\d{2}$',newTargetTemp)
     if match:
-        f = open("status", "w")
+        f = open(STATUS_FILE, "w")
         f.write(newTargetTemp + "\n" + mode)
         f.close()
-        flash("New temperature of " + newTargetTemp + " set!")
+        tempFlash('New temperature of {} set!'.format(newTargetTemp))
         return redirect(url_for('my_form'))
     else:
-        flash("That is not a two digit number! Try again!")
+        tempFlash("That is not a two digit number! Try again!")
         return redirect(url_for('my_form'))
 
 
@@ -259,7 +311,6 @@ updateTemp.lastHumid = 0
 
 @app.route('/_liveWhatsOn', methods= ['GET'])
 def updateWhatsOn():
-    # print 'app.debug is {}'.format(app.debug)
     return getWhatsOn()
 
 @app.route('/_toggleChanged_<switchVal>', methods= ['GET'])
@@ -270,7 +321,7 @@ def toggleChanged(switchVal):
   # Must read the file, and then re-write the file.
   #
 
-  with open("status","r") as f:
+  with open(STATUS_FILE,"r") as f:
     targetTemp = f.readline().strip()
     targetTemp = int(targetTemp)
     # targetTemp = int("12")
@@ -281,7 +332,7 @@ def toggleChanged(switchVal):
   dprint ("toggleChanged:  target temp is {:d}, mode is <{:s}>".
           format(targetTemp, mode))
 
-  with open("status", "w") as f:
+  with open(STATUS_FILE, "w") as f:
     f.write(str(targetTemp) + "\n" + mode)
 
 
@@ -295,12 +346,14 @@ def updateDaemonStatus():
 
 
 if __name__ == "__main__":
-    log.info("***\n*** Restarting websrvd at {}, debug is {}\n***".
-            format(lnow(), websvrd_DEBUG))
+    print('Starting the web server')
+    log.info("***\n*** Restarting websrvd at {}, debug is {},"
+        "Level set to {}\n***".
+            format(lnow(), logging.DEBUG, log.level))
 
 
 
 
     # app.config['DEBUG'] = True
     # DEBUG=True
-    app.run("0.0.0.0", port=7000, debug=False)
+    app.run("0.0.0.0", port=7000, debug=True)

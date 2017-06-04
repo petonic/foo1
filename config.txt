@@ -5,10 +5,17 @@
 [DEFAULT]
 
 # This is the base project directory to execute from.
-base_dir = /home/pi/git/pithy
+base_dir = /home/pi/pithy
 
 # These are where the logfles will be.
 log_dir = /tmp
+
+# Default DEBUG level if not specified
+debug = False
+
+# Lockfile for the debug temp file (TEMP_HUM_FILE)
+
+THF_LOCKFILE = /tmp/THF_LOCKFILE
 
 ############################################################
 # TEMP SENSOR - used by getTemp, THERMOD and WebSvrd
@@ -16,8 +23,7 @@ log_dir = /tmp
 
 [temp sensor]
 
-# This pin is used by the i2C temperature sensor.
-# 27 is what I'm using.
+# This pin is used by the i2C temperature sensor. 27 is what I'm using.
 GPIO_PIN = 27
 
 # This is the file that we cache the temp&humid information in.  Format
@@ -25,6 +31,7 @@ GPIO_PIN = 27
 #  2 digits after the decimal place.  The last optional value is an int
 #  with the timestamp (tics) of the last successful read.
 ENVCACHE = "/tmp/p_env_cache"
+
 
 ##################
 # For Debugging ...
@@ -39,6 +46,7 @@ ENVCACHE = "/tmp/p_env_cache"
 #
 # ./setTemp is a local util that will write to this file (or delete it).
 
+# TEMP_HUM_FILE = %(base_dir)s/tfile
 TEMP_HUM_FILE = %(base_dir)s/tfile
 
 # Number of seconds to wait between temperature readings.
@@ -55,7 +63,7 @@ MAX_RETRIES = 3
 # Location of the logfile
 LOGFILE = %(log_dir)s/p_getTemp.log
 
-DEBUG = True
+DEBUG = False
 
 
 ############################################################
@@ -67,16 +75,23 @@ DEBUG = True
 
 [thermod]
 STATUSFILE = %(log_dir)s/p_thermod.status
-PIDFILE = %(log_dir)s/p_pidfile_thermod
+PIDFILE = %(base_dir)s/p_pidfile_thermod
 LOGFILE = %(log_dir)s/tmp/p_thermod.log
+TEMPHUMID_DB = %(base_dir)s/temperatureLogs.db
 DEBUG = True
 
 
 ############################################################
-# WEBSVRD
+# WEBSRVD
 ############################################################
 [websrvd]
-DEBUG = False
+# Number of seconds to leave the FLASH message on
+# the browser.  Only useful in 5 sec intervals (as defined
+# by the Javascript code in the html file).
+
+FLASH_DUR = 5
+
+DEBUG = True
 
 ############################################################
 # Main Miscellaneous

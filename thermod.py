@@ -54,23 +54,12 @@ import logging
 import wiringpi
 
 # ----------------------------------
-# - Read config and set up logging -
+# - Read config                    -
 # ----------------------------------
 from configparser import SafeConfigParser
 config = SafeConfigParser(os.environ)
 
 config.read("config.txt")
-log = logging.getLogger()
-
-# Make it skip printing to stderr
-log.propagate = False
-
-DEBUGLEVEL = logging.error
-loglevel = logging.INFO
-thermo_DEBUG = config.getboolean('thermod', 'DEBUG')
-if config.getboolean('thermod', "DEBUG"):
-    loglevel = logging.DEBUG
-    DEBUG = thermo_DEBUG
 
 active_hysteresis = float(config.get('main', 'active_hysteresis'))
 inactive_hysteresis = float(config.get('main', 'inactive_hysteresis'))
@@ -86,25 +75,26 @@ TH_FILE = config.get('temp sensor', "TEMP_HUM_FILE").strip('"')
 PID_FILE = config.get('thermod', 'PIDFILE').strip('"')
 LOG_FILE = config.get('thermod', "LOGFILE").strip('"')
 STATUS_FILE = config.get('thermod', "STATUSFILE").strip('"')
+TEMPHUMID_DB = config.get('thermod', "TEMPHUMID_DB").strip('"')
 
-# create log
-log = logging.getLogger()
-log.setLevel(loglevel)
-# Create logger
-fh = logging.StreamHandler()
-fh.setLevel(loglevel)
-# create formatter and add it to the handlers
-formatterF = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
-fh.setFormatter(formatterF)
-# add the handlers to the log
-log.addHandler(fh)
+# ----------------------------------
+# - Set up logging                 -
+# ----------------------------------
 
-print('loglevel == {}, logDEBUG = {}'.format(loglevel, logging.DEBUG))
+import logging.config
+logging.config.fileConfig('config.logger')
+
+log = logging.getLogger('com.petonic.pithy.thermod')
+
+print('loglevel == {}, logDEBUG = {}'.format(log.level, logging.DEBUG))
+
+# ----------------------------------
+# - Fix up timezone stuff          -
+# ----------------------------------
 
 local_tz = pytz.timezone('US/Pacific-New')  # use your local timezone name here
 
 # AuthNOTE: pytz.reference.LocalTimezone() would produce wrong result here
-
 # You could use `tzlocal` module to get local timezone on Unix and Win32
 # from tzlocal import get_localzone # $ pip install tzlocal
 
@@ -170,7 +160,10 @@ sqliteEnabled = config.getboolean('sqlite', 'enabled')
 if sqliteEnabled == True:
     import sqlite3
 
+#
 # mail config
+#
+
 mailEnabled = config.getboolean('mail', 'enabled')
 if mailEnabled == True:
     import smtplib
@@ -192,6 +185,9 @@ subject = config.get('mailconf', 'subject')
 email_body_prefix = config.get('mailconf', 'email_body_prefix')
 errorThreshold = float(config.get('mail', 'errorThreshold'))
 
+#
+# Globals for Thermod
+#
 lastTemp = 0.0
 lastHumid = 0.0
 
@@ -336,6 +332,13 @@ def run():
     lastMail = datetime.now()
     configureGPIO()
 
+    # Write our PID to PID_FILE
+    try:
+      with open(PID_FILE, "w") as outfile:
+        print('{}'.format(os.getpid()), file=outfile)
+    except IOError:
+        pass
+
     # change cwd to wherever websrvrd is
     abspath = os.path.abspath(__file__)
     dname = os.path.dirname(abspath)
@@ -354,7 +357,6 @@ def run():
 
         hvacState = int(getHVACState())
 
-
         try:
             file = open(STATUS_FILE, "r")
             targetTemp = float(file.readline().rstrip('\n'))
@@ -365,20 +367,20 @@ def run():
             # Set default operation modes if the statusfile isn't found.
             targetTemp = 70.0
             switchMode = defStatus
-            log.warn('Error reading STATUS_FILE {}, so writing ( {} / {} )'
-                'to it\nReason: {}'. format(STATUS_FILE, targetTemp, defStatus,
-                repr(e)))
+            log.info('no_alarm: Can\'t read STATUS_FILE {}, so writing'
+             ' ( {} / {} )to it\nReason: {}'.
+             format(STATUS_FILE, targetTemp, defStatus, repr(e)))
             # Rewrite the STATUS_FILE so that we aren't in this error
             # state and we don't keep on spewing messages.
             try:
               with open(STATUS_FILE, "w") as ofile:
                 print('{:f}\n{}'.format(targetTemp, switchMode),file=ofile)
             except IOError:
-                log.error('Cannot re-write missing STATUS_FILE {}'.format(
-                  STATUS_FILE))
+                log.fatal('Cannot re-write missing STATUS_FILE {}'.format(
+                 STATUS_FILE))
+                sys.exit(144)
 
         # Log values so far
-        log.debug('Target Temp = %f, Switch = %s' % (targetTemp, switchMode))
 
         now = datetime.now()
         logElapsed = now - lastLog
@@ -399,7 +401,7 @@ def run():
         # logging actual temp and indoor temp to sqlite database.
         # you can do fun things with this data, like make charts!
         if logElapsed > timedelta(minutes=6) and sqliteEnabled:
-            c.execute('INSERT INTO logging VALUES(?, ?, ?, ?, ?, ?)',
+            sqlCursor.execute('INSERT INTO logging VALUES(?, ?, ?, ?, ?, ?)',
                       (now, trimFloat(indoorTemp), targetTemp,
                        trimFloat(humidity), switchMode, hvacState))
             conn.commit()
@@ -445,20 +447,25 @@ def run():
         # logging stuff
         heatStatus = 1 - wiringpi.digitalRead(HEATER_PIN)
         fanStatus = 1 - wiringpi.digitalRead(FAN_PIN)
-        log.debug("Status at  " + lnow())
-        log.debug("\tswitchMode = " + str(switchMode) + "")
-        log.debug("\thvacState  = " + str(hvacState) + "")
-        log.debug("\tindoorTemp = " + str(indoorTemp) + "")
-        log.debug("\ttargetTemp = " + str(targetTemp) + "")
-        log.debug("\theatStatus = " + str(heatStatus) + "")
-        log.debug("\tfanStatus  = " + str(fanStatus) + "")
-        # log.close()
+
+        def dpv(exp):
+            caller = sys._getframe(1)
+            return('\n\t\t{} = {}'.format(exp, caller.f_locals[exp.strip()]))
+
+        log.info("**** Debug Status ****" +
+            dpv("targetTemp") +
+            dpv("switchMode") +
+            dpv("hvacState ") +
+            dpv("indoorTemp") +
+            dpv("heatStatus") +
+            dpv("fanStatus "))
+
 
         time.sleep(5)
 
 
 def releaseGPIO():
-    configureGPIO()
+    log.info('Releasing all GPIO Connections')
     wiringpi.pinMode(HEATER_PIN, 1)  # Output mode
     wiringpi.digitalWrite(HEATER_PIN, 1)  # Pins are activeHI, so turn off.
     wiringpi.pinMode(FAN_PIN, 1)  # Output mode
@@ -477,16 +484,17 @@ if __name__ == "__main__":
             HEATER_PIN, FAN_PIN))
         sys.exit(0)
 
-    log.info("\n***\n*** Starting thermod at {}, debug is {}\n***".format(
-        lnow(), thermo_DEBUG))
+    log.info("\n***\n*** Starting thermod at {}, debug is {},"
+        "LogLevel = {}\n***".format(
+        lnow(), logging.DEBUG, log.level    ))
 
     if sqliteEnabled == True:
-        conn = sqlite3.connect("temperatureLogs.db")
-        c = conn.cursor()
+        conn = sqlite3.connect(TEMPHUMID_DB)
+        sqlCursor = conn.cursor()
         # Time, temp, targTemp, humid, switch, heater
-        c.execute('CREATE TABLE IF NOT EXISTS logging (datetime TIMESTAMP, \
-        actualTemp FLOAT, targetTemp INT, humid FLOAT, switch INT, \
-        hvacState INT)')
+        sqlCursor.execute('CREATE TABLE IF NOT EXISTS logging '
+         '(datetime TIMESTAMP, actualTemp FLOAT, targetTemp INT, '
+         'humid FLOAT, switch INT, hvacState INT)')
 
     try:
         run()
@@ -494,5 +502,5 @@ if __name__ == "__main__":
         log.debug('Keyboard interrupt, stopping')
         sys.exit(9)
     finally:
-        log.info('*** Finally, turning off all relays')
-        releaseGPIO
+        log.info('*** Finally_Clause, turning off all relays')
+        releaseGPIO()

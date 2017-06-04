@@ -3,30 +3,35 @@
 body {
     margin:0;
     padding:0;
-    
+
     /* Make text unselectable */
-    
-    -webkit-user-select: none; /* Chrome/Safari */        
+
+    -webkit-user-select: none; /* Chrome/Safari */
     -moz-user-select: none; /* Firefox */
     -ms-user-select: none; /* IE10+ */
     /* Rules below not implemented in browsers yet */
     -o-user-select: none;
     user-select: none;
-    
+
 }
 
 /* {2016-11-20 SUN 05:12} Petonic
  * Added the following so that the buttons don't have the ability
  * to select the + and - labels.  Gets sloppy with touchscreens.
  */
-.plus, .minus {
+.plus, .minus, .go {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    user-select: none;    
+    user-select: none;
 }
+
+.go {
+  color:green;
+}
+
 
 #header h1,
 #header h2,
@@ -93,6 +98,29 @@ body {
   border-radius: 49px;
 }
 
+.plus {
+  background-color: red;
+}
+
+.minus {
+  background-color: blue;
+}
+
+.go {
+  margin: 0.1em auto;
+  width: 180px;
+  line-height: 50px;
+  border: 5px solid black;
+  font-size: 24px;
+  text-align: center;
+  font-weight: bold;
+  border: 2px solid #999999;
+  border-radius: 49px;
+  background-color: green;
+  color: white;
+}
+
+
 li {
     list-style: none;
     font-size: 18px;
@@ -103,18 +131,20 @@ input[type="text"] {
     width: 200px;
     text-align: center;
     line-height: 60px;
-    border: 2px solid #999999; border-radius: 49px;
+    border: 2px solid #999999; border-radius: 20px;
     vertical-align: middle;
+    background-color: black;
+    color: yellow;
 }
 
-.goButton {
+/*.goButton {
     font-size: 30pt;
     width: 200px;
-    width: 300px; 
+    width: 300px;
     line-height: 60px;
     text-align: center;
     vertical-align: middle;
-}
+}*/
 
 .cn {
   display: table-cell;
@@ -133,30 +163,39 @@ p#currentTemp {
 }
 p#targetTemp {
     font-size: 40pt;
-    margin: 20px;
+    margin: 0px;
     text-align: center;
 }
 p#daemonRunning{
     font-size: 16pt;
     color:#1BB300;
-    font-weight:bold;
+    font-weight:normal;
 }
 p#daemonNotRunning{
-    font-size: 64pt;
+    font-size: 16pt;
     color:#FF0000;
     font-weight:1500;
+    animation: blinker 1s linear infinite;
 }
+
+.blink_me {
+  animation: blinker 1s linear infinite;
+}
+@keyframes blinker {
+  50% { opacity: 0; }
+}
+
 p#cool{
     color:#2FCCFF;
     font-size: 12pt;
 }
 p#heat{
-    color:#FF0000;
+    color:#000000;
     font-size: 12pt;
 
 }
 p#fan{
-    color:#00CC00;
+    color:#000000;
     font-size: 12pt;
 }
 p#coolOn{
@@ -170,7 +209,7 @@ p#heatOn{
     font-weight:bold;
 }
 p#fanOn{
-    color:#00CC00;
+    color:#FF0000;
     font-size: 24pt;
     font-weight:bold;
 }

@@ -11,12 +11,18 @@ temperature readings
 from sys import *
 import configparser as ConfigParser
 import os
+import logging
+import pprint
+
+logging.basicConfig(level=logging.WARN)
+
+
 
 config = ConfigParser.ConfigParser()
 config.read("config.txt")
-
-
 tfile = config.get('temp sensor',"TEMP_HUM_FILE").strip('"')
+thfLockfile = config.get('temp sensor',"THF_LOCKFILE").strip('"')
+
 
 
 import sys
@@ -36,6 +42,9 @@ def pusage():
     sys.exit(9)
 
 if len(argv) == 2:
+    logging.debug('len(argv) = {}, argv={}'.format(
+      len(argv), argv))
+
     if argv[1] == '-c':     # clear
         print('Removing debug temp file %s'%repr(tfile))
         try:
@@ -45,17 +54,32 @@ if len(argv) == 2:
         sys.exit(0)
     elif argv[1] == '-l':   # list
         try:
-            with open(tfile, "r") as file:
-                ttemp = float(file.readline())
-                thumid = float(file.readline())
-                print('Listing debug file: temp={:-2.2f} humid={:-2.2f}'
-                          .format(ttemp, thumid))
-                sys.exit(0)
+            # Lock the file even for reading.
+            import filelock
+            thfLock = filelock.FileLock(thfLockfile)
+            with thfLock.acquire(timeout=10):
+                with open(tfile, "r") as file:
+                    ttemp = float(file.readline())
+                    thumid = float(file.readline())
+                    print('Listing debug file({}): temp={:-2.2f}'
+                     ' humid={:-2.2f}'.format(tfile, ttemp, thumid))
+                    sys.exit(0)
+        except filelock.Timeout as e:
+            logging.fatal('Read: Error locking ({}) THF debug file ({}): {}'.
+             format(thfLockfile, tfile, repr(e)))
+            sys.exit(3)
+        except FileNotFoundError:
+            "DBG:********"; from pdb import set_trace as bp; bp(); "***************************"
+            print('THF debug file doesn\'t exist: {}'.format(tfile))
         except IOError as e:
-            print('No debug temp file ({})'.format(repr(tfile)))
+            logging.fatal('Read: IO Error on THF debug file ({}): {}'.
+             format(tfile, repr(e)))
             sys.exit(1)
-    else:
-        pusage()
+        except Exception as e:
+            logging.fatal('Read: Misc error THF file ({}): {}'.
+             format(tfile, repr(e)))
+            sys.exit(4)
+        sys.exit(0)
 
 
 
@@ -73,10 +97,28 @@ if len(argv) > 3:
         pusage()
 
 
-outf = open(tfile, "w")
+# Lock the file while writing
+import filelock
+try:
+    # Lock the file while writing
+    import filelock
+    thfLock = filelock.FileLock(thfLockfile)
+    with thfLock.acquire(timeout=10):
+        with open(tfile, "w") as file:
+            print("{:f}\n{:d}".format(temp, humid), file=file)
+except filelock.Timeout as e:
+    logging.fatal('Write: Error locking ({}) THF debug file ({}): {}'.
+     format(thfLockfile, tfile, repr(e)))
+    sys.exit(3)
+except IOError as e:
+    logging.fatal('Write: IO Error on THF debug file ({}): {}'.format(tfile,
+     repr(e)))
+    sys.exit(1)
+except Exception as e:
+    logging.fatal('Write: Misc error in program: {}'.format(repr(e)))
+    sys.exit(4)
 
-print("{:f}\n{:d}".format(temp, humid), file=outf)
-outf.close()
+print("Wrote to {}: temp of {:f} and humid of {:d}".format(
+  tfile, temp, humid))
 
-print("Wrote temp of {:f} and humid of {:d}".format(temp, humid))
 sys.exit(0)

@@ -9,3 +9,9 @@ rconsole*
 .AppleDouble
 .atom-nfs
 rnfs.log
+lgetTemp.log
+lroot.log
+lthermod.log
+lwebsrvd.log
+out
+status

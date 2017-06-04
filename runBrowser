@@ -1,5 +1,16 @@
 #!/bin/sh
 
+export DISPLAY=:0.0
+export HOME=/home/pi
+
+### Debug
+# Dispay the environment
+
+who am i
+id
+env | sort
+
+### End of Debug
 
 chromium-browser --noerrdialogs --kiosk --incognito --disable-translate 0.0.0.0:7000 >/dev/null 2>&1
 # chromium-browser --noerrdialogs --kiosk --incognito --disable-translate 0.0.0.0:7000 >/dev/null 2>&1
