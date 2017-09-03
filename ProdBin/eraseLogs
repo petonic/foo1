@@ -1,0 +1,7 @@
+#! /bin/bash
+# Erases all supervisord logfiles for Pithy
+#
+# stderr_logfile=/var/log/pithy_browser_err.log
+
+set -x
+sudo rm -f /var/log/pithy*
