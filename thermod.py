@@ -249,7 +249,6 @@ def idle():
 
 
 if mailEnabled == True:
-
     def sendErrorMail(mystr, fatalError=False):
         global mailBackoffCount, mailBackoffCount, mailLastSentTime
         global mailLastSubject, mailNumRepeats
@@ -270,7 +269,7 @@ if mailEnabled == True:
             mailLastSubject = mystr
             if mailNumRepeats:
                 # Give the user an indication of the numbrer of repts.
-                mystr = "(Prev rptd * {} times) ".format(mailBbackoffCount)
+                mystr = "(Prev rptd * {} times) ".format(mailBackoffCount)
             mailLastSentTime = time.time()
             mailNumRepeats = 0
 
@@ -343,6 +342,22 @@ def run():
     abspath = os.path.abspath(__file__)
     dname = os.path.dirname(abspath)
     os.chdir(dname)
+
+
+    # d888888b d8b   db d88888b d888888b d8b   db d888888b d888888b d88888b
+    #   `88'   888o  88 88'       `88'   888o  88   `88'   `~~88~~' 88'
+    #    88    88V8o 88 88ooo      88    88V8o 88    88       88    88ooooo
+    #    88    88 V8o88 88~~~      88    88 V8o88    88       88    88~~~~~
+    #   .88.   88  V888 88        .88.   88  V888   .88.      88    88.
+    # Y888888P VP   V8P YP      Y888888P VP   V8P Y888888P    YP    Y88888P
+    #
+    # db       .d88b.   .d88b.  d8888b.
+    # 88      .8P  Y8. .8P  Y8. 88  `8D
+    # 88      88    88 88    88 88oodD'
+    # 88      88    88 88    88 88~~~
+    # 88booo. `8b  d8' `8b  d8' 88
+    # Y88888P  `Y88P'   `Y88P'  88
+
 
     while True:
         tempHumid = getTemp()
@@ -447,6 +462,8 @@ def run():
         # logging stuff
         heatStatus = 1 - wiringpi.digitalRead(HEATER_PIN)
         fanStatus = 1 - wiringpi.digitalRead(FAN_PIN)
+
+      #   "DBG:********"; from pdb import set_trace as bp; bp()
 
         def dpv(exp):
             caller = sys._getframe(1)

@@ -71,6 +71,8 @@ loglevel = logging.WARNING
 if config.getboolean('temp sensor', "DEBUG"):
   loglevel = logging.DEBUG
 
+print('Debug is {}'.format(loglevel))
+
 # This is to prevent warning spam while using the debugTempFile
 notify_if_file_not_found = True;
 notify_if_file_found = True;
@@ -239,9 +241,8 @@ if __name__ == "__main__":
   opt = docopt(__doc__, options_first=True, version='1.0.0')
 
   if opt['--verbose']:
-    loglevel = logging.DEBUG
-    fh.setLevel(loglevel)
-    ch.setLevel(loglevel)
+    log.loglevel = logging.DEBUG
+    log.setLevel(logging.DEBUG)
 
 
   if opt['--cache']:

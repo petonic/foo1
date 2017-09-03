@@ -63,7 +63,7 @@ MAX_RETRIES = 3
 # Location of the logfile
 LOGFILE = %(log_dir)s/p_getTemp.log
 
-DEBUG = False
+DEBUG = True
 
 
 ############################################################

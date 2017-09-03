@@ -12,13 +12,13 @@ from datetime import datetime, timedelta
 from tzlocal import get_localzone
 from getTemp import getTemp
 from flask import Flask, request, session, g, redirect, url_for, \
-     abort, render_template, flash, jsonify
+     abort, render_template, flash, jsonify, make_response
 
 
 
 
 # Global debug variable declaration so that functions can see it.
-debug=False
+debug=True
 lastFlash = datetime(1970, 1, 1, 0, 0)
 flashCleared = True
 
@@ -53,7 +53,7 @@ logging.config.fileConfig('config.logger')
 
 log = logging.getLogger('com.petonic.pithy.websrvd')
 
-print('loglevel == {}, logDEBUG = {}'.format(log.level, logging.DEBUG))
+print(('loglevel == {}, logDEBUG = {}'.format(log.level, logging.DEBUG)))
 
 
 if weatherEnabled == True:
@@ -219,6 +219,7 @@ def my_form():
     log.debug("*** Right before Rendering template, checked = <{}>".
            format(checked))
 
+
     log.debug('Rendering template')
     rv =render_template("form.html", targetTemp = int(targetTemp), \
                                         weatherString = weatherString, \
@@ -227,6 +228,179 @@ def my_form():
                                         whatsOn = whatsOn)
 
     return rv
+
+@app.route('/indigo', methods=['GET'])
+def go_to_indigo():
+  redirURL='/p/macreyes.local:8176/controlpage?name=CR&useJS=True'
+  return redirect(redirURL)
+
+
+  # d8888b. d8888b.  .d88b.  db    db db    db
+  # 88  `8D 88  `8D .8P  Y8. `8b  d8' `8b  d8'
+  # 88oodD' 88oobY' 88    88  `8bd8'   `8bd8'
+  # 88~~~   88`8b   88    88  .dPYb.     88
+  # 88      88 `88. `8b  d8' .8P  Y8.    88
+  # 88      88   YD  `Y88P'  YP    YP    YP
+
+  # .d8888. d88888b d8888b. db    db d88888b d8888b.
+  # 88'  YP 88'     88  `8D 88    88 88'     88  `8D
+  # `8bo.   88ooooo 88oobY' Y8    8P 88ooooo 88oobY'
+  #   `Y8b. 88~~~~~ 88`8b   `8b  d8' 88~~~~~ 88`8b
+  # db   8D 88.     88 `88.  `8bd8'  88.     88 `88.
+  # `8888Y' Y88888P 88   YD    YP    Y88888P 88   YD
+
+import http.client
+import re
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
+import json
+
+from flask import Flask, Blueprint, request, Response, url_for
+from werkzeug.datastructures import Headers
+from werkzeug.exceptions import NotFound
+
+
+proxy = app
+
+# You can insert Authentication here.
+#proxy.before_request(check_login)
+
+# Filters.
+HTML_REGEX = re.compile(r'((?:src|action|href)=["\'])/')
+JQUERY_REGEX = re.compile(r'(\$\.(?:get|post)\(["\'])/')
+JS_LOCATION_REGEX = re.compile(r'((?:window|document)\.location.*=.*["\'])/')
+CSS_REGEX = re.compile(r'(url\(["\']?)/')
+
+REGEXES = [HTML_REGEX, JQUERY_REGEX, JS_LOCATION_REGEX, CSS_REGEX]
+
+
+def iterform(multidict):
+    for key in list(multidict.keys()):
+        for value in multidict.getlist(key):
+            yield (key.encode("utf8"), value.encode("utf8"))
+
+def parse_host_port(h):
+    """Parses strings in the form host[:port]"""
+    host_port = h.split(":", 1)
+    if len(host_port) == 1:
+        return (h, 80)
+    else:
+        host_port[1] = int(host_port[1])
+        return host_port
+
+
+# For RESTful Service
+@proxy.route('/proxy/<host>/', methods=["GET", "POST", "PUT", "DELETE"])
+@proxy.route('/proxy/<host>/<path:file>', methods=["GET", "POST", "PUT", "DELETE"])
+def proxy_request(host, file=""):
+    hostname, port = parse_host_port(host)
+    import sys
+
+    log.debug('Hostname : Port is {} : {}'.format(hostname, port))
+
+    log.debug("H: '{}' P: '{}'".format(hostname, port))
+    log.debug("F: '{}'".format(file))
+    # Whitelist a few headers to pass on
+    request_headers = {}
+    for h in ["Cookie", "Referer", "X-Csrf-Token"]:
+        if h in request.headers:
+            request_headers[h] = request.headers[h]
+
+    if request.query_string:
+        path = "/%s?%s" % (file, request.query_string)
+    else:
+        path = "/" + file
+
+    if request.method == "POST" or request.method == "PUT":
+        form_data = list(iterform(request.form))
+        form_data = urllib.parse.urlencode(form_data)
+        request_headers["Content-Length"] = len(form_data)
+    else:
+        form_data = None
+
+    conn = http.client.HTTPConnection(hostname, port)
+    conn.request(request.method, path, body=form_data, headers=request_headers)
+    resp = conn.getresponse()
+
+    # Clean up response headers for forwarding
+    d = {}
+    response_headers = Headers()
+    for key, value in resp.getheaders():
+        log.debug("HEADER: '{}':'{}'".format(key, value))
+        d[key.lower()] = value
+        if key in ["content-length", "connection", "content-type"]:
+            continue
+
+        if key == "set-cookie":
+            cookies = value.split(",")
+            [response_headers.add(key, c) for c in cookies]
+        else:
+            response_headers.add(key, value)
+
+    # If this is a redirect, munge the Location URL
+    if "location" in response_headers:
+        redirect = response_headers["location"]
+        parsed = urllib.parse.urlparse(request.url)
+        redirect_parsed = urllib.parse.urlparse(redirect)
+
+        redirect_host = redirect_parsed.netloc
+        if not redirect_host:
+            redirect_host = "%s:%d" % (hostname, port)
+
+        redirect_path = redirect_parsed.path
+        if redirect_parsed.query:
+            redirect_path += "?" + redirect_parsed.query
+
+        munged_path = url_for(".proxy_request",
+                              host=redirect_host,
+                              file=redirect_path[1:])
+
+        url = "%s://%s%s" % (parsed.scheme, parsed.netloc, munged_path)
+        response_headers["location"] = url
+
+    # Rewrite URLs in the content to point to our URL schemt.method == " instead.
+    # Ugly, but seems to mostly work.
+    root = url_for(".proxy_request", host=host)
+    contents = resp.read().decode('utf-8')
+
+    # Restructing Contents.
+    if d["content-type"].find("application/json") >= 0:
+        # JSON format conentens will be modified here.
+        jc = json.loads(contents)
+        if "nodes" in jc:
+            del jc["nodes"]
+        contents = json.dumps(jc)
+
+    else:
+        # Generic HTTP.
+        for regex in REGEXES:
+           contents = regex.sub(r'\1%s' % root, contents)
+        #    "DBG:********"; from pdb import set_trace as bp; bp()
+
+    flask_response = Response(response=contents,
+                              status=resp.status,
+                              headers=response_headers,
+                              content_type=resp.getheader('content-type'))
+    return flask_response
+
+
+    # d88888b d8b   db d8888b.
+    # 88'     888o  88 88  `8D
+    # 88ooooo 88V8o 88 88   88
+    # 88~~~~~ 88 V8o88 88   88
+    # 88.     88  V888 88  .8D
+    # Y88888P VP   V8P Y8888D'
+
+    # d8888b. d8888b.  .d88b.  db    db db    db
+    # 88  `8D 88  `8D .8P  Y8. `8b  d8' `8b  d8'
+    # 88oodD' 88oobY' 88    88  `8bd8'   `8bd8'
+    # 88~~~   88`8b   88    88  .dPYb.     88
+    # 88      88 `88. `8b  d8' .8P  Y8.    88
+    # 88      88   YD  `Y88P'  YP    YP    YP
+
+
+
+
 
 
 @app.route("/", methods=['POST'])

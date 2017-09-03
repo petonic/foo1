@@ -133,7 +133,7 @@ input[type="text"] {
     line-height: 60px;
     border: 2px solid #999999; border-radius: 20px;
     vertical-align: middle;
-    background-color: black;
+    background-color: LightGray;
     color: yellow;
 }
 

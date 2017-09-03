@@ -15,3 +15,7 @@ lthermod.log
 lwebsrvd.log
 out
 status
+.DS_Store
+p_pidfile_thermod
+websrvd.py.bak
+websrvd.py_2017-09-02

@@ -21,7 +21,7 @@ formatter: simple
 [handler_file_root]
 class: FileHandler
 args: ['lroot.log']
-level: NOTSET
+level: DEBUG
 formatter: detailed
 
 [handler_file_thermod]
@@ -37,6 +37,7 @@ formatter: detailed
 
 [handler_file_getTemp]
 class: FileHandler
+level: DEBUG
 args: ['lgetTemp.log']
 formatter: detailed
 
@@ -45,9 +46,9 @@ level: WARNING
 handlers: file_root
 
 [logger_thermod]
-level: WARNING
+level: DEBUG
 qualname: com.petonic.pithy.thermod
-handlers: console,file_thermod
+handlers: console
 
 [logger_websrvd]
 level: DEBUG
