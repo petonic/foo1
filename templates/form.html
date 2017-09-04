@@ -1,8 +1,15 @@
 <!DOCTYPE html>
+<!-- *
+* Include the style sheets...
+* -->
 
 <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='lame.css')}}">
+<link rel="stylesheet" type="text/css" href="{{url_for('static',filename='css-toggle-switch.css')}}">
+
+
 <script type='application/javascript' src="{{url_for('static',filename='fastclick.js')}}"></script>
-<!-- jquery is kinda overkill, but I doubt anyone besides me will actually use this... -->
+
+
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script>window.jQuery || document.write('<script src="{{
   url_for('static', filename='jquery.js') }}">\x3C/script>')</script>
@@ -10,107 +17,126 @@
 <!-- This will update the current indoor temp as fed from getIndoorTemp.py
 	 Refreshes every 5 seconds -->
 <script>
-function updateTemp() {
-	$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-	$.ajax({
-    url : $SCRIPT_ROOT + "/_liveTemp",
-    success : function(result){
-        $('#indoorTempSpan').html(result);
-    }
-})
-};
+    function updateTemp() {
+        $SCRIPT_ROOT = {
+            {
+                request.script_root | tojson | safe
+            }
+        };
+        $.ajax({
+            url: $SCRIPT_ROOT + "/_liveTemp",
+            success: function(result) {
+                $('#indoorTempSpan').html(result);
+            }
+        })
+    };
 
-function updateWhatsOn() {
-	$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-	$.ajax({
-    url : $SCRIPT_ROOT + "/_liveWhatsOn",
-    success : function(result){
-        $('#whatsOnSpan').html(result);
-    }
-})
-};
+    function updateWhatsOn() {
+        $SCRIPT_ROOT = {
+            {
+                request.script_root | tojson | safe
+            }
+        };
+        $.ajax({
+            url: $SCRIPT_ROOT + "/_liveWhatsOn",
+            success: function(result) {
+                $('#whatsOnSpan').html(result);
+            }
+        })
+    };
 
-window.setInterval(function(){
-  updateTemp();
-  updateWhatsOn();
-}, 5000);
+    window.setInterval(function() {
+        updateTemp();
+        updateWhatsOn();
+    }, 5000);
 </script>
 
 <script>
+    function changeSwitch(ev) {
 
-function changeSwitch(ev) {
+        // if ($('#uho').is(':checked')) {
+        // $("#myonoffswitch").is(':checked')
+        // myval = $("#myonoffswitch").val();
+        myval = $("#myonoffswitch").is(':checked')
+        myUrl = "/_toggleChanged_" + String(myval)
 
-  // if ($('#uho').is(':checked')) {
-  // $("#myonoffswitch").is(':checked')
-  // myval = $("#myonoffswitch").val();
-  myval = $("#myonoffswitch").is(':checked')
-  myUrl = "/_toggleChanged_" + String(myval)
-
-  console.log("Changed, val = <" + myUrl + ">");
+        console.log("Changed, val = <" + myUrl + ">");
 
 
-  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-  $.ajax({
-    url : $SCRIPT_ROOT + myUrl,
-    success : function(result){
-        return;
-    }
-  })
-};
+        $SCRIPT_ROOT = {
+            {
+                request.script_root | tojson | safe
+            }
+        };
+        $.ajax({
+            url: $SCRIPT_ROOT + myUrl,
+            success: function(result) {
+                return;
+            }
+        })
+    };
 
-function updateWhatsOn() {
+    function updateWhatsOn() {
 
-	$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-	$.ajax({
-    url : $SCRIPT_ROOT + "/_liveWhatsOn",
-    success : function(result){
-        $('#whatsOnSpan').html(result);
-    }
-})
-};
+        $SCRIPT_ROOT = {
+            {
+                request.script_root | tojson | safe
+            }
+        };
+        $.ajax({
+            url: $SCRIPT_ROOT + "/_liveWhatsOn",
+            success: function(result) {
+                $('#whatsOnSpan').html(result);
+            }
+        })
+    };
 
-window.setInterval(function(){
-  updateWhatsOn()
-}, 1000);
+    window.setInterval(function() {
+        updateWhatsOn()
+    }, 1000);
 </script>
 
 <script>
-function updateDaemonStatus() {
+    function updateDaemonStatus() {
 
-	$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-	$.ajax({
-    url : $SCRIPT_ROOT + "/_liveDaemonStatus",
-    success : function(result){
-        $('#daemonStatusSpan').html(result);
-    }
-})
-};
+        $SCRIPT_ROOT = {
+            {
+                request.script_root | tojson | safe
+            }
+        };
+        $.ajax({
+            url: $SCRIPT_ROOT + "/_liveDaemonStatus",
+            success: function(result) {
+                $('#daemonStatusSpan').html(result);
+            }
+        })
+    };
 
-window.setInterval(function(){
-  updateDaemonStatus()
-}, 5000);
+    window.setInterval(function() {
+        updateDaemonStatus()
+    }, 5000);
 </script>
 
 
 <script type="application/javascript">
-	window.addEventListener('load', function() {
-		var plus, minus;
+    window.addEventListener('load', function() {
+        var plus, minus;
 
-		plus = document.getElementById('plus');
-		minus = document.getElementById('minus');
+        plus = document.getElementById('plus');
+        minus = document.getElementById('minus');
 
-		// Android 2.2 needs FastClick to be instantiated before the other listeners so that the stopImmediatePropagation hack can work.
-		FastClick.attach(minus);
-		FastClick.attach(plus);
+        // Android 2.2 needs FastClick to be instantiated before the other listeners so that the stopImmediatePropagation hack can work.
+        FastClick.attach(minus);
+        FastClick.attach(plus);
 
-		plus.addEventListener('click', function(event) {
-			increment(document.getElementById('target'))
-		}, false);
+        plus.addEventListener('click', function(event) {
+            increment(document.getElementById('target'))
+        }, false);
 
-		minus.addEventListener('click', function(event) {
-			decrement(document.getElementById('target'))
-		}, false);
-	}, false);
+        minus.addEventListener('click', function(event) {
+            decrement(document.getElementById('target'))
+        }, false);
+    }, false);
 </script>
 
 <!-- Makes them fancy buttons go -->
@@ -119,74 +145,86 @@ window.setInterval(function(){
 
 <body onload="updateTemp(); updateWhatsOn(); updateDaemonStatus();">
 
-<div id="container2">
-	<form action="." method="POST">
-	<div id="container1">
-		<div id="col1">
-			<center>
-			<br><br>
-			<div class="onoffswitch">
-				<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox"
-            id="myonoffswitch" onChange="changeSwitch(this);"
-            {{ checked }}>
-				<label class="onoffswitch-label" for="myonoffswitch">
+    <div id="container2">
+        <form action="." method="POST">
+            <div id="container1">
+                <div id="col1">
+                    <center>
+                        <br><br>
+                        <div class="onoffswitch">
+                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" onChange="changeSwitch(this);" {{ checked }}>
+                            <label class="onoffswitch-label" for="myonoffswitch">
 						<div class="onoffswitch-inner"></div>
 						<div class="onoffswitch-switch"></div>
 				</label>
-			</div>
-			<div class="plus" id="plus">+</div>
-			<input type="text" id="target" name="target" value={{ targetTemp }}>
-			<div class="minus" id="minus">-</div>
-			<br>
-      <!-- <a href="http://pithy.local:7000/indigo"> -->
-      <!-- <a href="http://pithy.local:7788/proxy/macreyes.local:8176/"> -->
+                        </div>
+                        <div class="plus" id="plus">+</div>
+                        <input type="text" id="target" name="target" value={{ targetTemp }}>
+                        <div class="minus" id="minus">-</div>
+                        <br>
 
-		    </center>
-		</div>
+                        <!-- *****************************
+                        * Toggle switch
+                        ****************************** -->
 
-		<div id="col2">
-			<center>
-			<!-- the heating / cooling switch -->
-			<div class="switch">
-                <a href="http://pithy.local:7788/proxy/macreyes.local:8176/controlpage?name=CR&useJS=True" >
+                        <div class="switch-toggle switch-3 switch-candy">
+                            <input id="on" name="state-d" type="radio" checked="">
+                            <label for="on" onclick="">ON</label>
+
+                            <input id="na" name="state-d" type="radio" checked="checked">
+                            <label for="na" onclick="">N/A</label>
+
+                            <input id="off" name="state-d" type="radio">
+                            <label for="off" onclick="">OFF</label>
+
+                            <a></a>
+                        </div>
+
+                    </center>
+                </div>
+
+                <div id="col2">
+                    <center>
+                        <!-- the heating / cooling switch -->
+                        <div class="switch">
+                            <a href="http://pithy.local:7788/proxy/macreyes.local:8176/controlpage?name=CR&useJS=True">
                     <img src="{{url_for('static',filename='indigo_logo.png')}}"
                         height="76px" width="380px" />
                 </a>
 
-				<center>
-				{{ weatherString|safe}}
-				<br>
-				<!-- center tags are basically the extent of my web design knowledge. -->
-				<!-- updated by the updateTemp() js function defined above -->
-				Current indoor temp:
-				<p id="currentTemp"><span id="indoorTempSpan"></span>&deg;</p>
-				Current target temp:
-				<p id="targetTemp">{{targetTemp}}&deg;</p>
-				<input type="submit" class="go"  id="goButton" class="goButton" value="Go!">
-				<span id="daemonStatusSpan"></span>
-				<span id="whatsOnSpan"></span>
-				</center>
-			</div>
-			</center>
-      <div id="header">
-      <center>
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <ul class=flashes style="border;">
-          {% for message in messages %}
-            <li>{{ message }}</li>
-          {% endfor %}
-          </ul>
-          {% block javascript %}
-            <script>
-              /* Reload for the flash message in 5 seconds */
-              setTimeout(function(){location.reload();},7000);
-            </script>
-          {% endblock %}
-        {% endif %}
-      {% endwith %}
-      </center>
+                            <center>
+                                {{ weatherString|safe}}
+                                <br>
+                                <!-- center tags are basically the extent of my web design knowledge. -->
+                                <!-- updated by the updateTemp() js function defined above -->
+                                Current indoor temp:
+                                <p id="currentTemp"><span id="indoorTempSpan"></span>&deg;</p>
+                                Current target temp:
+                                <p id="targetTemp">{{targetTemp}}&deg;</p>
+                                <input type="submit" class="go" id="goButton" class="goButton" value="Go!">
+                                <span id="daemonStatusSpan"></span>
+                                <span id="whatsOnSpan"></span>
+                            </center>
+                        </div>
+                    </center>
+                    <div id="header">
+                        <center>
+                            {% with messages = get_flashed_messages() %} {% if messages %}
+                            <ul class=flashes style="border;">
+                                {% for message in messages %}
+                                <li>{{ message }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% block javascript %}
+                            <script>
+                                /* Reload for the flash message in 5 seconds */
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 7000);
+                            </script>
+                            {% endblock %} {% endif %} {% endwith %}
+                        </center>
 
-		</div>
-	</div>
-	</form>
+                    </div>
+                </div>
+        </form>
