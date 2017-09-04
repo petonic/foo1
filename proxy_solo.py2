@@ -108,7 +108,7 @@ def proxy_request(host, file=""):
     d = {}
     response_headers = Headers()
     for key, value in resp.getheaders():
-        print "HEADER: '%s':'%s'" % (key, value)
+        # print "HEADER: '%s':'%s'" % (key, value)
         d[key.lower()] = value
         if key in ["content-length", "connection", "content-type"]:
             continue

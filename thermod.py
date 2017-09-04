@@ -61,6 +61,10 @@ config = SafeConfigParser(os.environ)
 
 config.read("config.txt")
 
+print('XYZZY: THERMOD: STARTING NOW!!!!  CWD = {}: {}'.format(
+        os.getcwd(),datetime.now().isoformat()), file=sys.stderr)
+
+
 active_hysteresis = float(config.get('main', 'active_hysteresis'))
 inactive_hysteresis = float(config.get('main', 'inactive_hysteresis'))
 
@@ -506,7 +510,12 @@ if __name__ == "__main__":
         lnow(), logging.DEBUG, log.level    ))
 
     if sqliteEnabled == True:
-        conn = sqlite3.connect(TEMPHUMID_DB)
+        try:
+            conn = sqlite3.connect(TEMPHUMID_DB)
+        except Exception as e:
+            log.fatal('SQLite3L: Error sqlite3.connect with {}: {}'.format(
+                    TEMPHUMID_DB, e))
+            sys.exit(32)
         sqlCursor = conn.cursor()
         # Time, temp, targTemp, humid, switch, heater
         sqlCursor.execute('CREATE TABLE IF NOT EXISTS logging '

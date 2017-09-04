@@ -14,6 +14,9 @@ from getTemp import getTemp
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash, jsonify, make_response
 
+PROJ_DIR='/home/pi/pithy'
+PYTHON2_PATH='/usr/bin/python2'
+PROXY_PROCESS=[ PYTHON2_PATH, 'proxy_solo.py2' ]
 
 
 
@@ -21,6 +24,8 @@ from flask import Flask, request, session, g, redirect, url_for, \
 debug=True
 lastFlash = datetime(1970, 1, 1, 0, 0)
 flashCleared = True
+
+
 
 app = Flask(__name__)
 #hard to be secret in open source... >.>
@@ -525,7 +530,14 @@ if __name__ == "__main__":
         "Level set to {}\n***".
             format(lnow(), logging.DEBUG, log.level))
 
-
+    # Our proxy that we spawn will die when we get killed.
+    # As per:
+    #  https://pymotw.com/3/subprocess/#process-groups-sessions
+    os.setpgrp()
+    # Start the proxy server
+    proxy_pid = subprocess.Popen(PROXY_PROCESS, stderr=subprocess.STDOUT).pid
+    log.debug('Started proxy server -- PID = {}'.format(proxy_pid))
+    # p = subprocess.Popen(args, stdout=f, stderr=subprocess.STDOUT, shell=True)
 
 
     # app.config['DEBUG'] = True

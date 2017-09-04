@@ -140,9 +140,6 @@ window.setInterval(function(){
 			<br>
       <!-- <a href="http://pithy.local:7000/indigo"> -->
       <!-- <a href="http://pithy.local:7788/proxy/macreyes.local:8176/"> -->
-      <a href="http://pithy.local:7788/proxy/macreyes.local:8176/controlpage?name=CR&useJS=True">
-        Indigo CR
-      </a>
 
 		    </center>
 		</div>
@@ -151,6 +148,11 @@ window.setInterval(function(){
 			<center>
 			<!-- the heating / cooling switch -->
 			<div class="switch">
+                <a href="http://pithy.local:7788/proxy/macreyes.local:8176/controlpage?name=CR&useJS=True" >
+                    <img src="{{url_for('static',filename='indigo_logo.png')}}"
+                        height="76px" width="380px" />
+                </a>
+
 				<center>
 				{{ weatherString|safe}}
 				<br>
