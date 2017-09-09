@@ -106,7 +106,8 @@
   .switch-light.row {
     display: flex; }
   .switch-light .alert-light {
-    color: #333; }
+    color: #999; }
+    /*color: #333; }*/
   /* Radio Switch
  */
   .switch-toggle {
@@ -234,31 +235,41 @@
  */
   .switch-toggle.switch-candy,
   .switch-light.switch-candy > span {
-    background-color: #2d3035;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     border-radius: 3px;
-    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.2); }
+  }
   .switch-light.switch-candy span span,
   .switch-light.switch-candy input:checked ~ span span:first-child,
   .switch-toggle.switch-candy label {
-    color: #fff;
+    /*color: #bbb;*/
+    /*color: #fff;*/
+    color:white;
     font-weight: bold;
     text-align: center;
     text-shadow: 1px 1px 1px #191b1e; }
+
   .switch-light.switch-candy input ~ span span:first-child,
   .switch-light.switch-candy input:checked ~ span span:nth-child(2),
   .switch-candy input:checked + label {
-    color: #333;
+    /*background-color=red;*/
+    /*color: #333;*/
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5); }
+
   .switch-candy a {
-    border: 1px solid #333;
+    border: 0px solid #333;
     border-radius: 3px;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.45);
-    background-color: #70c66b;
+    /*background-color: #7fff6b;*/
+    /*background-color: #70c66b;*/
     background-image: linear-gradient(rgba(255, 255, 255, 0.2), transparent); }
   .switch-candy-blue a {
     background-color: #38a3d4; }
   .switch-candy-yellow a {
     background-color: #f5e560; }
+  .switch-candy a #off {
+    background-color: #f5e560; }
+
   /* iOS Theme
 */
   .switch-ios.switch-light span span {
@@ -308,7 +319,7 @@
   .switch-ios.switch-toggle {
     background-color: #D8D9DB;
     border-radius: 30px;
-    box-shadow: inset rgba(0, 0, 0, 0.1) 0 1px 0; }
+  }
     .switch-ios.switch-toggle a {
       background-color: #4BD865;
       border: 0.125em solid #D8D9DB;
@@ -327,7 +338,6 @@
   .switch-light.switch-holo > span {
     background-color: #464747;
     border-radius: 1px;
-    box-shadow: inset rgba(0, 0, 0, 0.1) 0 1px 0;
     color: #fff;
     text-transform: uppercase; }
   .switch-holo label {
@@ -344,7 +354,7 @@
   .switch-holo a {
     background-color: #666;
     border-radius: 1px;
-    box-shadow: inset rgba(255, 255, 255, 0.2) 0 1px 0, inset rgba(0, 0, 0, 0.3) 0 -1px 0; }
+  }
   /* Selected ON switch-light
 */
   .switch-holo.switch-light input:checked ~ span a {
@@ -353,6 +363,8 @@
     opacity: 0; }
   .switch-holo.switch-light input:checked ~ span span:last-of-type {
     opacity: 1; }
+
+
   /* Material Theme
  */
   /* switch-light
@@ -363,7 +375,6 @@
     height: 1.75em;
     border-radius: 50%;
     background: #fafafa;
-    box-shadow: 0 0.125em 0.125em 0 rgba(0, 0, 0, 0.14), 0 0.1875em 0.125em -0.125em rgba(0, 0, 0, 0.2), 0 0.125em 0.25em 0 rgba(0, 0, 0, 0.12);
     transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
   .switch-material.switch-light {
     overflow: visible; }
@@ -386,7 +397,6 @@
   .switch-material.switch-light input:checked ~ span a {
     right: 0;
     background: #3f51b5;
-    box-shadow: 0 0.1875em 0.25em 0 rgba(0, 0, 0, 0.14), 0 0.1875em 0.1875em -0.125em rgba(0, 0, 0, 0.2), 0 0.0625em 0.375em 0 rgba(0, 0, 0, 0.12); }
   .switch-material.switch-light input:checked ~ span {
     background: rgba(63, 81, 181, 0.5); }
   /* switch-toggle
@@ -491,3 +501,32 @@
     -webkit-transform: translate3d(0, 0, 0); } }
 
 /*# sourceMappingURL=toggle-switch.css.map */
+
+input:not(:checked) + label[for=off] {  background-color: #130f0f; opacity: 0.534; border: 10px solid white;}
+input:not(:checked) + label[for=fan] {  background-color: #181967; opacity: 0.534; border: 10px solid white;}
+input:not(:checked) + label[for=heat] { background-color: #de0808; opacity: 0.534; border: 10px solid white;}
+
+input:checked + label[for=off] {  color:white; background-color: #130f0f; opacity: 0.9; border: 0px solid white;}
+input:checked + label[for=fan] {  color:white; background-color: #181967; opacity: 0.9;border: 0px solid white;}
+input:checked + label[for=heat] {  color:white; background-color: #de0808; opacity: 0.9;border: 0px solid white;}
+
+/*label {display: block; padding: 1em;}*/
+
+/*input:checked + label {  }*/
+
+  /*border: 1px solid #f00;*/
+
+
+
+#switch label {
+  display: block;
+  /*border: 1px solid #f00;*/
+  min-height: 100%; /* for the latest browsers which support min-height */
+  height: auto !important; /* for newer IE versions */
+  height: 100%; /* the only height-related attribute that IE6 does not ignore  */
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+}

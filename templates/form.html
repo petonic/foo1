@@ -18,11 +18,7 @@
 	 Refreshes every 5 seconds -->
 <script>
     function updateTemp() {
-        $SCRIPT_ROOT = {
-            {
-                request.script_root | tojson | safe
-            }
-        };
+        $SCRIPT_ROOT = {{ request.script_root | tojson | safe }};
         $.ajax({
             url: $SCRIPT_ROOT + "/_liveTemp",
             success: function(result) {
@@ -32,11 +28,7 @@
     };
 
     function updateWhatsOn() {
-        $SCRIPT_ROOT = {
-            {
-                request.script_root | tojson | safe
-            }
-        };
+        $SCRIPT_ROOT = {{ request.script_root | tojson | safe }};
         $.ajax({
             url: $SCRIPT_ROOT + "/_liveWhatsOn",
             success: function(result) {
@@ -57,17 +49,13 @@
         // if ($('#uho').is(':checked')) {
         // $("#myonoffswitch").is(':checked')
         // myval = $("#myonoffswitch").val();
-        myval = $("#myonoffswitch").is(':checked')
+        myval = ev.id;
         myUrl = "/_toggleChanged_" + String(myval)
 
-        console.log("Changed, val = <" + myUrl + ">");
+        console.log("*** Changed, val = <" + myUrl + ">");
 
 
-        $SCRIPT_ROOT = {
-            {
-                request.script_root | tojson | safe
-            }
-        };
+        $SCRIPT_ROOT = {{ request.script_root | tojson | safe }};
         $.ajax({
             url: $SCRIPT_ROOT + myUrl,
             success: function(result) {
@@ -78,11 +66,7 @@
 
     function updateWhatsOn() {
 
-        $SCRIPT_ROOT = {
-            {
-                request.script_root | tojson | safe
-            }
-        };
+        $SCRIPT_ROOT = {{ request.script_root | tojson | safe }};
         $.ajax({
             url: $SCRIPT_ROOT + "/_liveWhatsOn",
             success: function(result) {
@@ -99,11 +83,7 @@
 <script>
     function updateDaemonStatus() {
 
-        $SCRIPT_ROOT = {
-            {
-                request.script_root | tojson | safe
-            }
-        };
+        $SCRIPT_ROOT = {{ request.script_root | tojson | safe }};
         $.ajax({
             url: $SCRIPT_ROOT + "/_liveDaemonStatus",
             success: function(result) {
@@ -150,14 +130,22 @@
             <div id="container1">
                 <div id="col1">
                     <center>
-                        <br><br>
-                        <div class="onoffswitch">
-                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" onChange="changeSwitch(this);" {{ checked }}>
-                            <label class="onoffswitch-label" for="myonoffswitch">
-						<div class="onoffswitch-inner"></div>
-						<div class="onoffswitch-switch"></div>
-				</label>
+
+                        <div class="switch-toggle switch-3 switch-candy" id="switch" style="height:100px;">
+                            <input id="off" name="state-d" type="radio" checked="checked" onChange="changeSwitch(this);" >
+                            <label for="off" onclick="">SYS<br>OFF</label></input>
+
+                            <input id="fan" name="state-d" type="radio" onChange="changeSwitch(this);" >
+                            <label for="fan" onclick="">FAN<br>ONLY</label></input>
+
+                            <input id="heat" name="state-d" type="radio" onChange="changeSwitch(this);" >
+                            <label for="heat" onclick="">AUTO<br>HEAT</label></input>
+                            <a></a>
                         </div>
+
+
+
+                        <br>
                         <div class="plus" id="plus">+</div>
                         <input type="text" id="target" name="target" value={{ targetTemp }}>
                         <div class="minus" id="minus">-</div>
@@ -167,18 +155,6 @@
                         * Toggle switch
                         ****************************** -->
 
-                        <div class="switch-toggle switch-3 switch-candy">
-                            <input id="on" name="state-d" type="radio" checked="">
-                            <label for="on" onclick="">ON</label>
-
-                            <input id="na" name="state-d" type="radio" checked="checked">
-                            <label for="na" onclick="">N/A</label>
-
-                            <input id="off" name="state-d" type="radio">
-                            <label for="off" onclick="">OFF</label>
-
-                            <a></a>
-                        </div>
 
                     </center>
                 </div>
@@ -193,7 +169,7 @@
                 </a>
 
                             <center>
-                                {{ weatherString|safe}}
+                                {{ weatherString|safe }}
                                 <br>
                                 <!-- center tags are basically the extent of my web design knowledge. -->
                                 <!-- updated by the updateTemp() js function defined above -->

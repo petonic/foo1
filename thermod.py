@@ -187,7 +187,7 @@ sender = config.get('mailconf', 'sender')
 recipient = config.get('mailconf', 'recipient')
 subject = config.get('mailconf', 'subject')
 email_body_prefix = config.get('mailconf', 'email_body_prefix')
-errorThreshold = float(config.get('mail', 'errorThreshold'))
+error_threshold = float(config.get('mail', 'error_threshold'))
 
 #
 # Globals for Thermod
@@ -211,18 +211,18 @@ def configureGPIO():
 
 def getHVACState():
     # Must flip them because the relays are active LOW, and inactive HIGH
-    heatStatus = 1 - wiringpi.digitalRead(HEATER_PIN)
-    fanStatus = 1 - wiringpi.digitalRead(FAN_PIN)
+    heat_status = 1 - wiringpi.digitalRead(HEATER_PIN)
+    fan_status = 1 - wiringpi.digitalRead(FAN_PIN)
 
-    if heatStatus == 1 and fanStatus == 1:
+    if heat_status == 1 and fan_status == 1:
         # heating
         return 1
-    elif heatStatus == 0 and fanStatus == 0:
+ elif heat_status == 0 and fan_status == 0:
         # idle
         return 0
     else:
-        log_error('Invalid HVAC State, heatStatus = {}, fanStatus = {}'.format(
-            heatStatus, fanStatus))
+        log_error('Invalid HVAC State, heat_status = {}, fan_status = {}'.format(
+            heat_status, fan_status))
         # broken
         return 2
 
@@ -283,8 +283,8 @@ if mailEnabled == True:
         ]
         headers = "\r\n".join(headers)
         try:
-            heatStatus = 1 - wiringpi.digitalRead(HEATER_PIN)
-            fanStatus = 1 - wiringpi.digitalRead(FAN_PIN)
+            heat_status = 1 - wiringpi.digitalRead(HEATER_PIN)
+            fan_status = 1 - wiringpi.digitalRead(FAN_PIN)
             nbody = nbody + "\r\nPithy shut down!!!\r\n" if fatalError else "" + \
               "\r\n\r\nThermod V1 Status at  " + lnow() + ":\r\n"
             try:
@@ -296,12 +296,12 @@ if mailEnabled == True:
             except Exception as e:
                 nbody = nbody + '\tCannot get Status File ({}): {}\r\n'.format(
                     STATUS_FILE, repr(e))
-            hvacState = int(getHVACState())
+            hvac_state = getHVACState()
             tempHumid = getTemp()
-            nbody = nbody + "\thvacState = " + str(hvacState) + "\r\n"
+            nbody = nbody + "\thvacState = " + str(hvac_state) + "\r\n"
             nbody = nbody + "\temp+humid = " + repr(tempHumid) + "\r\n"
-            nbody = nbody + "\theatStatus = " + str(heatStatus) + "\r\n"
-            nbody = nbody + "\tfanStatus = " + str(fanStatus) + "\r\n"
+            nbody = nbody + "\theatStatus = " + str(heat_status) + "\r\n"
+            nbody = nbody + "\tfanStatus = " + str(fan_status) + "\r\n"
             if fatalError:
                 nbody = nbody + "\r\nPithy received fatal error, exiting program\r\n"
             session = smtplib.SMTP_SSL("{}:{}".format(SMTP_SERVER, SMTP_PORT))
@@ -368,32 +368,36 @@ def run():
         if len(tempHumid) < 2:
             log.warning(
                 "thermod:{}: error reading tempHumid value".format(lnow()))
-            indoorTemp = lastTemp
+            indoor_temp = lastTemp
             humidity = lastHumid
         else:
-            indoorTemp = float(tempHumid[0])
+            indoor_temp = float(tempHumid[0])
             humidity = float(tempHumid[1])
 
-        hvacState = int(getHVACState())
+        hvac_state = getHVACState()
+
+        # Save this value in case we have to change state of the
+        # GPIO
+        old_switch_mode = switch_mode
 
         try:
             file = open(STATUS_FILE, "r")
-            targetTemp = float(file.readline().rstrip('\n'))
-            switchMode = file.readline().rstrip('\n')
+            target_temp = float(file.readline().rstrip('\n'))
+            switch_mode = file.readline().rstrip('\n')
             file.close()
         except Exception as e:
             defStatus = 'off'
             # Set default operation modes if the statusfile isn't found.
-            targetTemp = 70.0
-            switchMode = defStatus
+            target_temp = 70.0
+            switch_mode = defStatus
             log.info('no_alarm: Can\'t read STATUS_FILE {}, so writing'
              ' ( {} / {} )to it\nReason: {}'.
-             format(STATUS_FILE, targetTemp, defStatus, repr(e)))
+             format(STATUS_FILE, target_temp, defStatus, repr(e)))
             # Rewrite the STATUS_FILE so that we aren't in this error
             # state and we don't keep on spewing messages.
             try:
               with open(STATUS_FILE, "w") as ofile:
-                print('{:f}\n{}'.format(targetTemp, switchMode),file=ofile)
+                print('{:f}\n{}'.format(target_temp, switch_mode),file=ofile)
             except IOError:
                 log.fatal('Cannot re-write missing STATUS_FILE {}'.format(
                  STATUS_FILE))
@@ -409,10 +413,10 @@ def run():
         # it's 72, we want it to be 78, and the error threshold is 5 = this
         # triggers
         if mailEnabled == True and (mailElapsed > timedelta(minutes=20)) and \
-            (float(targetTemp) - indoorTemp) > errorThreshold:
+            (float(target_temp) - indoor_temp) > error_threshold:
             sendErrorMail('Heat beyond threshold ({} - {} = {} > {}'.format(
-                targetTemp, indoorTemp,
-                float(targetTemp) - indoorTemp, errorThreshold))
+                target_temp, indoor_temp,
+                float(target_temp) - indoor_temp, error_threshold))
             lastMail = datetime.now()
             log.info("MAIL: Sent mail to " + recipient + \
                      " at " + now.strftime('%F %T'))
@@ -421,51 +425,51 @@ def run():
         # you can do fun things with this data, like make charts!
         if logElapsed > timedelta(minutes=6) and sqliteEnabled:
             sqlCursor.execute('INSERT INTO logging VALUES(?, ?, ?, ?, ?, ?)',
-                      (now, trimFloat(indoorTemp), targetTemp,
-                       trimFloat(humidity), switchMode, hvacState))
+                      (now, trimFloat(indoor_temp), target_temp,
+                       trimFloat(humidity), switch_mode, hvac_state))
             conn.commit()
             lastLog = datetime.now()
 
-        # $hvacState has the following values:
-        #   0=idle, 1=heating, 2=unknown
-        # $switchMode has the following:
+        # $hvac_state has the following values:
+        #   of, fan, heat
+        # $switch_mode has the following:
         #   "off"
         #   "on"
-        if switchMode == "heat":
-            if hvacState == 0:  # idle
-                if indoorTemp < targetTemp - inactive_hysteresis:
+        if switch_mode == "heat":
+            if hvac_state == 0:  # idle
+                if indoor_temp < target_temp - inactive_hysteresis:
                     log.info("STATE: Switching to heat at " + lnow() +
-                             ", hvacState = %d" % hvacState)
-                    hvacState = heat()
+                             ", hvac_state = %d" % hvac_state)
+                    hvac_state = heat()
 
-            elif hvacState == 1:  # heating
-                if indoorTemp > targetTemp + active_hysteresis:
+            elif hvac_state == 1:  # heating
+                if indoor_temp > target_temp + active_hysteresis:
                     log.info("STATE: Switching to fan idle at " + lnow() +
-                             ", hvacState = %d" % hvacState)
+                             ", hvac_state = %d" % hvac_state)
                     fan_to_idle()
                     log.info("STATE: Switching to idle at " + lnow() +
-                             ", hvacState = %d" % hvacState)
-                    hvacState = idle()
+                             ", hvac_state = %d" % hvac_state)
+                    hvac_state = idle()
         else:
             #
-            # The switchMode is "off", so we have to check if the hvacState is actually
+            # The switch_mode is "off", so we have to check if the hvac_state is actually
             # off as well.  If not, then we have to turn it off.
             #
-            if not (switchMode == "off"):
-                log_fatal("Invalid switchMode <{}>".format(switchMode))
-                assert (switchMode == "off")
-            if (hvacState == 1):  # Heating is on, turn it off
+            if not (switch_mode == "off"):
+                log_fatal("Invalid switch_mode <{}>".format(switch_mode))
+                assert (switch_mode == "off")
+            if (hvac_state == 1):  # Heating is on, turn it off
                 log.info("STATE: switch is off, turning off heat and fan")
                 log.info("STATE: Switching to fan idle at " + lnow() +
-                         ", hvacState = %d" % hvacState)
+                         ", hvac_state = %d" % hvac_state)
                 fan_to_idle()
                 log.info("STATE: Switching to idle at " + lnow() +
-                         ", hvacState = %d" % hvacState)
-                hvacState = idle()
+                         ", hvac_state = %d" % hvac_state)
+                hvac_state = idle()
 
         # logging stuff
-        heatStatus = 1 - wiringpi.digitalRead(HEATER_PIN)
-        fanStatus = 1 - wiringpi.digitalRead(FAN_PIN)
+        heat_status = 1 - wiringpi.digitalRead(HEATER_PIN)
+        fan_status = 1 - wiringpi.digitalRead(FAN_PIN)
 
       #   "DBG:********"; from pdb import set_trace as bp; bp()
 
@@ -474,12 +478,12 @@ def run():
             return('\n\t\t{} = {}'.format(exp, caller.f_locals[exp.strip()]))
 
         log.info("**** Debug Status ****" +
-            dpv("targetTemp") +
-            dpv("switchMode") +
-            dpv("hvacState ") +
-            dpv("indoorTemp") +
-            dpv("heatStatus") +
-            dpv("fanStatus "))
+            dpv("target_temp") +
+            dpv("switch_mode") +
+            dpv("hvac_state ") +
+            dpv("indoor_temp") +
+            dpv("heat_status") +
+            dpv("fan_status "))
 
 
         time.sleep(5)
@@ -519,8 +523,8 @@ if __name__ == "__main__":
         sqlCursor = conn.cursor()
         # Time, temp, targTemp, humid, switch, heater
         sqlCursor.execute('CREATE TABLE IF NOT EXISTS logging '
-         '(datetime TIMESTAMP, actualTemp FLOAT, targetTemp INT, '
-         'humid FLOAT, switch INT, hvacState INT)')
+         '(datetime TIMESTAMP, actualTemp FLOAT, target_temp INT, '
+         'humid FLOAT, switch INT, hvac_state VARCHAR)')
 
     try:
         run()

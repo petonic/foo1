@@ -499,24 +499,18 @@ def toggleChanged(switchVal):
   # Rewrite the STATUS file so that the toggle change is reflected.
   # Must read the file, and then re-write the file.
   #
-
   with open(STATUS_FILE,"r") as f:
     targetTemp = f.readline().strip()
     targetTemp = int(targetTemp)
-    # targetTemp = int("12")
-
-  # Javascript boolean is lower-case True and False
-  mode = "heat" if switchVal == "true" else "off"
+    # Ignore the previous mode that was stored, we're going to chg it.
 
   dprint ("toggleChanged:  target temp is {:d}, mode is <{:s}>".
-          format(targetTemp, mode))
+          format(targetTemp, switchVal))
 
   with open(STATUS_FILE, "w") as f:
-    f.write(str(targetTemp) + "\n" + mode)
-
+    f.write(str(targetTemp) + "\n" + switchVal)
 
   return ""
-
 
 @app.route('/_liveDaemonStatus', methods= ['GET'])
 def updateDaemonStatus():
