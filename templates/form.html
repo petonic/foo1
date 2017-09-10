@@ -46,9 +46,6 @@
 <script>
     function changeSwitch(ev) {
 
-        // if ($('#uho').is(':checked')) {
-        // $("#myonoffswitch").is(':checked')
-        // myval = $("#myonoffswitch").val();
         myval = ev.id;
         myUrl = "/_toggleChanged_" + String(myval)
 
@@ -97,6 +94,56 @@
     }, 5000);
 </script>
 
+<script>
+    // This is run after onload(), and based on what the
+    // Flask-passed value of 'switch_status' is, then we
+    // check the appropriate box.  It's only called once
+    // per page load.
+    function getSwitchStatus() {
+        box_id = "{{ checked }}"
+        $(box_id).attr('checked', 'checked')
+    };
+
+</script>
+
+<script>
+
+    // Create a new function for jQuery that centers the objet
+    // in the middle of the screen and scales it down
+    jQuery.fn.center = function () {
+        this.css("position","absolute");
+        this.css("top", Math.max(0, (($(window).height() - $(this).outerHeight()) / 2)) + "px");
+        this.css("left", Math.max(0, (($(window).width() - $(this).outerWidth()) / 2)) + "px");
+        this.css("max-width", "20%");
+        this.css("height", "auto");
+        return this;
+    };
+
+    // Only run this once the whole page and all elements are loaded
+    $( document ).ready(function() {
+        // Set display attributes to hidden for each .img class
+        $(".img").each(function() {
+            $(this).css("display","none");
+        });
+
+        // Now,delay for 10 secs,and then center each image.
+        console.log('Before the timeout: ' + Date());
+        setTimeout(function() {
+            $(".img").each(function() {
+                $(this).center();
+            });
+            console.log('After the timeout: ' + Date());
+
+        }, 10000);
+
+        // One last time for good measure...
+        $(".img").each(function() {
+            $(this).center();
+        });
+    });
+
+
+</script>
 
 <script type="application/javascript">
     window.addEventListener('load', function() {
@@ -123,7 +170,12 @@
 <script type=text/javascript src="{{
   url_for('static', filename='increment.js') }}"></script>
 
-<body onload="updateTemp(); updateWhatsOn(); updateDaemonStatus();">
+<body onload="updateTemp(); updateWhatsOn(); updateDaemonStatus();
+getSwitchStatus(); ">
+
+    <div id="imgContainer">
+        <img id="img_heat" class="img" style="position:absolute;" src="{{url_for('static',filename='img_heat.png')}}" />
+        <img id="img_fan" class="img" style="position:absolute;" src="{{url_for('static',filename='img_fan.png')}}" />
 
     <div id="container2">
         <form action="." method="POST">
@@ -132,13 +184,13 @@
                     <center>
 
                         <div class="switch-toggle switch-3 switch-candy" id="switch" style="height:100px;">
-                            <input id="off" name="state-d" type="radio" checked="checked" onChange="changeSwitch(this);" >
+                            <input id="off" name="state-d" type="radio" {{ check_off }} onChange="changeSwitch(this);" >
                             <label for="off" onclick="">SYS<br>OFF</label></input>
 
-                            <input id="fan" name="state-d" type="radio" onChange="changeSwitch(this);" >
+                            <input id="fan" name="state-d" type="radio" {{ check_fan }} onChange="changeSwitch(this);" >
                             <label for="fan" onclick="">FAN<br>ONLY</label></input>
 
-                            <input id="heat" name="state-d" type="radio" onChange="changeSwitch(this);" >
+                            <input id="heat" name="state-d" type="radio" {{ check_heat }} onChange="changeSwitch(this);" >
                             <label for="heat" onclick="">AUTO<br>HEAT</label></input>
                             <a></a>
                         </div>

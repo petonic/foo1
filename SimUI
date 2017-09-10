@@ -30,10 +30,15 @@ tfile = STATUS_FILE
 
 
 def pusage(str):
-  print('{}: Error with command line options, {}'.format(str))
-  print("Usage:\t{} <heat|off> [<target_temp>]: {}".format(argv[0], str),
-        file=sys.stderr)
-  sys.exit(9)
+  """If called with non-null STR, then print this as an error, but otherwise
+  just print the usage in case the user forgot about how to do so."""
+
+  usage_str = "Usage:\t{} <off|fan|heat> [<target_temp>]: {}".format(
+      argv[0], str)
+  if len(str):
+    print('{}: Usage error: {}\n{}'.format(argv[0], str, usage_str))
+    sys.exit(9)
+  print(usage_str)
 
 targ_temp = -1.0
 
@@ -42,10 +47,14 @@ if len(argv) < 2:
     print('STATUS_FILE (%s) contains:'%repr(tfile))
     output = subprocess.check_output(['cat',tfile], universal_newlines=True)
     print(output, end='')
+    pusage('')
     sys.exit(0)
 
 if len(argv) >= 2:
+  if argv[1] not in ['off', 'fan', 'heat']:
+    pusage('mode must be one of "off|heat|fan"')
   targ_mode = argv[1]
+
 if len(argv) == 3:
   try:
       targ_temp = float(argv[2])

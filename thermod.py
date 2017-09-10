@@ -210,30 +210,42 @@ def configureGPIO():
 
 
 def getHVACState():
+    """This function returns the state of the HVAC pins: idle, fan, heat."""
     # Must flip them because the relays are active LOW, and inactive HIGH
     heat_status = 1 - wiringpi.digitalRead(HEATER_PIN)
     fan_status = 1 - wiringpi.digitalRead(FAN_PIN)
 
-    if heat_status == 1 and fan_status == 1:
-        # heating
-        return 1
- elif heat_status == 0 and fan_status == 0:
-        # idle
-        return 0
+    if fan_status == 1:
+        if heat_status == 1:
+            return 'heat'
+        else:
+            return 'fan'
     else:
-        log_error('Invalid HVAC State, heat_status = {}, fan_status = {}'.format(
-            heat_status, fan_status))
-        # broken
-        return 2
+        if heat_status == 1:
+            err_str = 'DANGER: Invalid HVAC State, heat_status = {}, fan_status = {}'.format(
+                heat_status, fan_status)
+            log_error(err_str)
+            sendErrorMail(err_str, fatalError=True)
+        else:
+            return 'off'      # Both FAN and HEAT are off
+    return 'invalid'
 
-
-def heat():
+########################
+#
+# These functions use GPIO functions, and both pins are active == LOW.
+# Switching these pins to a HIGH state will turn off the associated realy.
+########################
+def hvac_heat():
     pgpio(HEATER_PIN, wiringpi.LOW)
     pgpio(FAN_PIN, wiringpi.LOW)
-    return 1
+    return 'heat'
 
+def hvac_fan():
+    pgpio(HEATER_PIN, wiringpi.HIGH)
+    pgpio(FAN_PIN, wiringpi.LOW)
+    return 'fan'
 
-def fan_to_idle():
+def hvac_idle_fan():
     # to blow the rest of the heated / cooled air out of the system
     pgpio(HEATER_PIN, wiringpi.HIGH)
     pgpio(FAN_PIN, wiringpi.LOW)
@@ -241,15 +253,20 @@ def fan_to_idle():
         fan_idle_time))
     time.sleep(fan_idle_time)
 
-
-def idle():
+def hvac_all_off():
     pgpio(HEATER_PIN, wiringpi.HIGH)
     pgpio(FAN_PIN, wiringpi.HIGH)
     # delay to preserve compressor
     log.debug(".....\tidle: Going to sleep for {} seconds".format(
         compressor_save_time))
     time.sleep(compressor_save_time)
-    return 0
+    return 'off'
+
+########################
+#
+# Mail and other error logging.
+#
+########################
 
 
 if mailEnabled == True:
@@ -362,6 +379,7 @@ def run():
     # 88booo. `8b  d8' `8b  d8' 88
     # Y88888P  `Y88P'   `Y88P'  88
 
+    switch_mode = 'off'
 
     while True:
         tempHumid = getTemp()
@@ -397,7 +415,7 @@ def run():
             # state and we don't keep on spewing messages.
             try:
               with open(STATUS_FILE, "w") as ofile:
-                print('{:f}\n{}'.format(target_temp, switch_mode),file=ofile)
+                print('{:f}\n{}\n'.format(target_temp, switch_mode),file=ofile)
             except IOError:
                 log.fatal('Cannot re-write missing STATUS_FILE {}'.format(
                  STATUS_FILE))
@@ -431,25 +449,26 @@ def run():
             lastLog = datetime.now()
 
         # $hvac_state has the following values:
-        #   of, fan, heat
+        #   'idle', 'fan', 'heat'
         # $switch_mode has the following:
-        #   "off"
-        #   "on"
-        if switch_mode == "heat":
-            if hvac_state == 0:  # idle
+        #   'off', 'fan', 'heat'
+        if switch_mode == 'heat':
+            if hvac_state != 'heat':  # Fan  or Idle
                 if indoor_temp < target_temp - inactive_hysteresis:
-                    log.info("STATE: Switching to heat at " + lnow() +
-                             ", hvac_state = %d" % hvac_state)
-                    hvac_state = heat()
-
+                    log.info('STATE: Switching to heat at {}, '
+                             'hvac_state = {}'.format(lnow(), hvac_state))
+                    hvac_state = hvac_heat()
+            # If we've reached temp to get to, shut the heat and fan down.
             elif hvac_state == 1:  # heating
                 if indoor_temp > target_temp + active_hysteresis:
-                    log.info("STATE: Switching to fan idle at " + lnow() +
-                             ", hvac_state = %d" % hvac_state)
-                    fan_to_idle()
-                    log.info("STATE: Switching to idle at " + lnow() +
-                             ", hvac_state = %d" % hvac_state)
-                    hvac_state = idle()
+                    log.info('STATE: Switching to fan idle at {}, '
+                             'hvac_state = {}'.format(lnow(), hvac_state))
+                    hvac_idle_fan()
+                    log.info('STATE: Switching to ALL_OFF at {}, '
+                             'hvac_state = {}'.format(lnow(), hvac_state))
+                    hvac_state = hvac_all_off()
+        elif switch_mode == 'fan':
+            hvac_state = hvac_fan()
         else:
             #
             # The switch_mode is "off", so we have to check if the hvac_state is actually
@@ -458,14 +477,19 @@ def run():
             if not (switch_mode == "off"):
                 log_fatal("Invalid switch_mode <{}>".format(switch_mode))
                 assert (switch_mode == "off")
-            if (hvac_state == 1):  # Heating is on, turn it off
+
+            log.debug('Turning system off, previous hvac_state = {}'.format(
+                        hvac_state))
+
+            if hvac_state == 'heat':  # Heating is on, turn it off
                 log.info("STATE: switch is off, turning off heat and fan")
-                log.info("STATE: Switching to fan idle at " + lnow() +
-                         ", hvac_state = %d" % hvac_state)
-                fan_to_idle()
-                log.info("STATE: Switching to idle at " + lnow() +
-                         ", hvac_state = %d" % hvac_state)
-                hvac_state = idle()
+                log.info('STATE: Switching to fan idle at {}, '
+                       'hvac_state = {}'.format(lnow(), hvac_state))
+                hvac_idle_fan()
+                log.info('STATE: Switching to ALL_OFF at {}, '
+                       'hvac_state = {}'.format(lnow(), hvac_state))
+            if hvac_state != 'off':
+                hvac_state = hvac_all_off()
 
         # logging stuff
         heat_status = 1 - wiringpi.digitalRead(HEATER_PIN)

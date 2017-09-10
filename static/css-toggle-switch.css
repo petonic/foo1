@@ -500,7 +500,6 @@
   to {
     -webkit-transform: translate3d(0, 0, 0); } }
 
-/*# sourceMappingURL=toggle-switch.css.map */
 
 input:not(:checked) + label[for=off] {  background-color: #130f0f; opacity: 0.534; border: 10px solid white;}
 input:not(:checked) + label[for=fan] {  background-color: #181967; opacity: 0.534; border: 10px solid white;}

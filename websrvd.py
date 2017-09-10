@@ -24,6 +24,8 @@ PROXY_PROCESS=[ PYTHON2_PATH, 'proxy_solo.py2' ]
 debug=True
 lastFlash = datetime(1970, 1, 1, 0, 0)
 flashCleared = True
+lastStatus = None
+lastTarget = 0.0
 
 
 
@@ -73,6 +75,23 @@ if weatherEnabled == True:
         string = string.replace("<br /><a href=\"http://us.rd.yahoo.com/dailynews/rss/weather/Nashville__TN/*http://weather.yahoo.com/forecast/USTN0357_f.html\">Full Forecast at Yahoo! Weather</a><BR/><BR/>", "")
         return string
 
+
+def get_status():
+    """Returns (temp, status) as a result, otherwise uses default of 70/off in
+    the case of an error..
+    """
+    default_return = (70.0, "off")
+    try:
+      with open(STATUS_FILE, "r") as file:
+          targetTemp = float(file.readline().strip())
+          mode = file.readline().rstrip('\n')
+    except IOError:
+        log.fatal("Error getting status from {}. Is thermod running?".
+            format(STATUS_FILE))
+        return default_return
+    log.debug("get_status: target temp is {}, mode is <{}>".
+              format(targetTemp, mode))
+    return (targetTemp, mode)
 
 
 def dprint(str):
@@ -136,7 +155,7 @@ def tempFlash(msg):
 
 
 def getWhatsOn():
-    global flashCleared, lastFlash
+    global flashCleared, lastFlash, lastStatus, lastTarget
     #
     # Use /sys/class/gpio/gpio{HEATER,FAN}/value to read the
     # status because wiringPI always returns 0 for some reason, or
@@ -146,8 +165,11 @@ def getWhatsOn():
     #
     # Must flip them because the relays are active LOW, and inactive HIGH
     #
+    dprint('--- GetWhatsOn()')
     heatStatus = 1 - gpioRead(HEATER_PIN)
     fanStatus = 1 - gpioRead(FAN_PIN)
+
+    (currTarget, currStatus) = get_status()
 
     # log.debug('WhatsOn: Heat = {}, Fan = {}'.format(heatStatus, fanStatus))
 
@@ -167,15 +189,42 @@ def getWhatsOn():
         flashCleared = True
         flash(" ")
 
+    # Based on the state of the GPIO DEVICES, change the large image
 
-    headerStr = "<table>"
+    # #img_heat or #img_fan
+    if heatStatus == 1:
+        img_string = ('$("#img_heat").css("display","flex");'
+                      '$("#img_fan").css("display","none");')
+    elif fanStatus == 1:
+        img_string = ('$("#img_heat").css("display","none");'
+                      '$("#img_fan").css("display","flex");')
+    else:
+        img_string = ('$("#img_heat").css("display","none");'
+                      '$("#img_fan").css("display","none");')
+
 
     heatString = "<tr><td>Heat:</td><td>{}</td></tr>".format("<font color='red'>ON" if heatStatus == 1 else "<font color='black'>Off")
     fanString = "<tr><td>Fan:</td><td>{}</td></tr>".format("<font color='blue'>ON" if fanStatus == 1 else "<font color='black'>Off")
-    return '<table>' + heatString + fanString + '</table>'
+
+    redirect_return = False
+    if (lastStatus != currStatus) or (lastTarget != currTarget):
+      log.debug('*** REDIRECTING: status = ({},{}), target = ({},{})'.format(
+          lastStatus, currStatus, lastTarget, currTarget))
+      redirect_return = True
+
+    lastStatus = currStatus
+    lastTarget = currTarget
+
+
+    return '''
+        <!-- Set display properties of the appropriate image -->
+        <script> {} </script>
+        <table> {} {} </table>
+        '''.format(img_string, heatString, fanString)
 
 
 def getDaemonStatus():
+    dprint('---- getDaemonStatus()')
     try:
         with open(PID_FILE) as infile:
             pid = int(infile.readline().rstrip('\n'))
@@ -189,16 +238,7 @@ def getDaemonStatus():
 
 @app.route('/')
 def my_form():
-    try:
-      with open(STATUS_FILE, "r") as file:
-          targetTemp = float(file.readline().strip())
-          mode = file.readline().rstrip('\n')
-    except IOError:
-        log.fatal("Error getting status from {}. Is thermod running?".
-            format(STATUS_FILE))
-        sys.exit(121)
-    log.debug("MY_FORM: target temp is {}, mode is <{}>".
-              format(targetTemp, mode))
+    (targetTemp, mode) = get_status()
 
     weatherString = ""
     if weatherEnabled == True:
@@ -214,21 +254,16 @@ def my_form():
 
     daemonStatus=getDaemonStatus()
 
-    if mode == "heat":
-      checked = "checked=\"checked\""
-    elif mode == "off":
-      checked = ""
-    else:
-        checked = "Something broke"
+    checked_java_var = "#" + mode
 
-    log.debug("*** Right before Rendering template, checked = <{}>".
-           format(checked))
+    log.debug("*** Right before Rendering template, checked_string = <{}>".
+           format(checked_java_var))
 
 
     log.debug('Rendering template')
     rv =render_template("form.html", targetTemp = int(targetTemp), \
                                         weatherString = weatherString, \
-                                        checked = checked, \
+                                        checked = checked_java_var, \
                                         daemonStatus = daemonStatus, \
                                         whatsOn = whatsOn)
 
@@ -240,174 +275,8 @@ def go_to_indigo():
   return redirect(redirURL)
 
 
-  # d8888b. d8888b.  .d88b.  db    db db    db
-  # 88  `8D 88  `8D .8P  Y8. `8b  d8' `8b  d8'
-  # 88oodD' 88oobY' 88    88  `8bd8'   `8bd8'
-  # 88~~~   88`8b   88    88  .dPYb.     88
-  # 88      88 `88. `8b  d8' .8P  Y8.    88
-  # 88      88   YD  `Y88P'  YP    YP    YP
-
-  # .d8888. d88888b d8888b. db    db d88888b d8888b.
-  # 88'  YP 88'     88  `8D 88    88 88'     88  `8D
-  # `8bo.   88ooooo 88oobY' Y8    8P 88ooooo 88oobY'
-  #   `Y8b. 88~~~~~ 88`8b   `8b  d8' 88~~~~~ 88`8b
-  # db   8D 88.     88 `88.  `8bd8'  88.     88 `88.
-  # `8888Y' Y88888P 88   YD    YP    Y88888P 88   YD
-
-import http.client
-import re
-import urllib.request, urllib.parse, urllib.error
-import urllib.parse
-import json
-
-from flask import Flask, Blueprint, request, Response, url_for
-from werkzeug.datastructures import Headers
-from werkzeug.exceptions import NotFound
-
-
-proxy = app
-
-# You can insert Authentication here.
-#proxy.before_request(check_login)
-
-# Filters.
-HTML_REGEX = re.compile(r'((?:src|action|href)=["\'])/')
-JQUERY_REGEX = re.compile(r'(\$\.(?:get|post)\(["\'])/')
-JS_LOCATION_REGEX = re.compile(r'((?:window|document)\.location.*=.*["\'])/')
-CSS_REGEX = re.compile(r'(url\(["\']?)/')
-
-REGEXES = [HTML_REGEX, JQUERY_REGEX, JS_LOCATION_REGEX, CSS_REGEX]
-
-
-def iterform(multidict):
-    for key in list(multidict.keys()):
-        for value in multidict.getlist(key):
-            yield (key.encode("utf8"), value.encode("utf8"))
-
-def parse_host_port(h):
-    """Parses strings in the form host[:port]"""
-    host_port = h.split(":", 1)
-    if len(host_port) == 1:
-        return (h, 80)
-    else:
-        host_port[1] = int(host_port[1])
-        return host_port
-
-
-# For RESTful Service
-@proxy.route('/proxy/<host>/', methods=["GET", "POST", "PUT", "DELETE"])
-@proxy.route('/proxy/<host>/<path:file>', methods=["GET", "POST", "PUT", "DELETE"])
-def proxy_request(host, file=""):
-    hostname, port = parse_host_port(host)
-    import sys
-
-    log.debug('Hostname : Port is {} : {}'.format(hostname, port))
-
-    log.debug("H: '{}' P: '{}'".format(hostname, port))
-    log.debug("F: '{}'".format(file))
-    # Whitelist a few headers to pass on
-    request_headers = {}
-    for h in ["Cookie", "Referer", "X-Csrf-Token"]:
-        if h in request.headers:
-            request_headers[h] = request.headers[h]
-
-    if request.query_string:
-        path = "/%s?%s" % (file, request.query_string)
-    else:
-        path = "/" + file
-
-    if request.method == "POST" or request.method == "PUT":
-        form_data = list(iterform(request.form))
-        form_data = urllib.parse.urlencode(form_data)
-        request_headers["Content-Length"] = len(form_data)
-    else:
-        form_data = None
-
-    conn = http.client.HTTPConnection(hostname, port)
-    conn.request(request.method, path, body=form_data, headers=request_headers)
-    resp = conn.getresponse()
-
-    # Clean up response headers for forwarding
-    d = {}
-    response_headers = Headers()
-    for key, value in resp.getheaders():
-        log.debug("HEADER: '{}':'{}'".format(key, value))
-        d[key.lower()] = value
-        if key in ["content-length", "connection", "content-type"]:
-            continue
-
-        if key == "set-cookie":
-            cookies = value.split(",")
-            [response_headers.add(key, c) for c in cookies]
-        else:
-            response_headers.add(key, value)
-
-    # If this is a redirect, munge the Location URL
-    if "location" in response_headers:
-        redirect = response_headers["location"]
-        parsed = urllib.parse.urlparse(request.url)
-        redirect_parsed = urllib.parse.urlparse(redirect)
-
-        redirect_host = redirect_parsed.netloc
-        if not redirect_host:
-            redirect_host = "%s:%d" % (hostname, port)
-
-        redirect_path = redirect_parsed.path
-        if redirect_parsed.query:
-            redirect_path += "?" + redirect_parsed.query
-
-        munged_path = url_for(".proxy_request",
-                              host=redirect_host,
-                              file=redirect_path[1:])
-
-        url = "%s://%s%s" % (parsed.scheme, parsed.netloc, munged_path)
-        response_headers["location"] = url
-
-    # Rewrite URLs in the content to point to our URL schemt.method == " instead.
-    # Ugly, but seems to mostly work.
-    root = url_for(".proxy_request", host=host)
-    contents = resp.read().decode('utf-8')
-
-    # Restructing Contents.
-    if d["content-type"].find("application/json") >= 0:
-        # JSON format conentens will be modified here.
-        jc = json.loads(contents)
-        if "nodes" in jc:
-            del jc["nodes"]
-        contents = json.dumps(jc)
-
-    else:
-        # Generic HTTP.
-        for regex in REGEXES:
-           contents = regex.sub(r'\1%s' % root, contents)
-        #    "DBG:********"; from pdb import set_trace as bp; bp()
-
-    flask_response = Response(response=contents,
-                              status=resp.status,
-                              headers=response_headers,
-                              content_type=resp.getheader('content-type'))
-    return flask_response
-
-
-    # d88888b d8b   db d8888b.
-    # 88'     888o  88 88  `8D
-    # 88ooooo 88V8o 88 88   88
-    # 88~~~~~ 88 V8o88 88   88
-    # 88.     88  V888 88  .8D
-    # Y88888P VP   V8P Y8888D'
-
-    # d8888b. d8888b.  .d88b.  db    db db    db
-    # 88  `8D 88  `8D .8P  Y8. `8b  d8' `8b  d8'
-    # 88oodD' 88oobY' 88    88  `8bd8'   `8bd8'
-    # 88~~~   88`8b   88    88  .dPYb.     88
-    # 88      88 `88. `8b  d8' .8P  Y8.    88
-    # 88      88   YD  `Y88P'  YP    YP    YP
-
-
-
-
-
-
+# This is called when the user presses the big green "GO" button, and
+# it is what submits a new temperature.
 @app.route("/", methods=['POST'])
 def my_form_post():
     global lastFlash, flashCleared
@@ -416,39 +285,13 @@ def my_form_post():
     mode = "off"
     dprint( "****************** Top of form_post")
 
-    try:
-        with open(STATUS_FILE,"r") as f:
-            targetTemp = float(f.readline().strip())
-            # targetTemp = int("12")
-            mode = f.readline().rstrip('\n')
-    except Exception as e:
-        log.fatal('my_form_post: Cannot read status file ({}): {}'.format(
-            STATUS_FILE, repr(e)))
-
-
-
-
-    # Eliminated the toggle of status -- done dynamically
-    #
-    # #default mode to off
-    # #heat if the checkbox is returned, it is checked
-    # #and cool mode has been selected
-    # #
-    # #This is a toggle.  When the post is made, if the switch is off, then
-    # #turn it to heat. If it's on HEAT, then turn it off.
-    #
-    # if 'onoffswitch' in request.form:
-    #     mode = "off"
-    # else:
-    #     mode = "heat"
-    #
-    # dprint("Current OnOffSwitch = {}".format(request.form['onoffswitch']))
+    (targetTemp, mode) = get_status()
 
     newTargetTemp = text.upper()
     match = re.search(r'^\d{2}$',newTargetTemp)
     if match:
         f = open(STATUS_FILE, "w")
-        f.write(newTargetTemp + "\n" + mode)
+        f.write(newTargetTemp + "\n" + mode + "\n")
         f.close()
         tempFlash('New temperature of {} set!'.format(newTargetTemp))
         return redirect(url_for('my_form'))
@@ -472,6 +315,8 @@ def toggleSwitch():
 
 @app.route('/_liveTemp', methods= ['GET'])
 def updateTemp():
+    dprint('---- updateTemp()')
+
     rv = getTemp();
     if len(rv) != 2:
       # Must've had an error, log it and use the last known value
@@ -499,22 +344,20 @@ def toggleChanged(switchVal):
   # Rewrite the STATUS file so that the toggle change is reflected.
   # Must read the file, and then re-write the file.
   #
-  with open(STATUS_FILE,"r") as f:
-    targetTemp = f.readline().strip()
-    targetTemp = int(targetTemp)
-    # Ignore the previous mode that was stored, we're going to chg it.
+  targetTemp = get_status()[0]
+  # Ignore the previous mode that was stored, we're going to chg it.
 
-  dprint ("toggleChanged:  target temp is {:d}, mode is <{:s}>".
+  dprint ("toggleChanged:  target temp is {}, mode is <{}>".
           format(targetTemp, switchVal))
 
   with open(STATUS_FILE, "w") as f:
-    f.write(str(targetTemp) + "\n" + switchVal)
+    f.write(str(targetTemp) + "\n" + switchVal + "\n")
 
   return ""
 
 @app.route('/_liveDaemonStatus', methods= ['GET'])
 def updateDaemonStatus():
-
+    dprint('---- updateDaemonStatus()')
     return getDaemonStatus()
 
 
@@ -528,10 +371,10 @@ if __name__ == "__main__":
     # As per:
     #  https://pymotw.com/3/subprocess/#process-groups-sessions
     os.setpgrp()
-    # Start the proxy server
-    proxy_pid = subprocess.Popen(PROXY_PROCESS, stderr=subprocess.STDOUT).pid
+    # Start the proxy server -- ignore error output for now.
+    proxy_pid = subprocess.Popen(PROXY_PROCESS,
+                                 stderr=subprocess.STDOUT, shell=False).pid
     log.debug('Started proxy server -- PID = {}'.format(proxy_pid))
-    # p = subprocess.Popen(args, stdout=f, stderr=subprocess.STDOUT, shell=True)
 
 
     # app.config['DEBUG'] = True

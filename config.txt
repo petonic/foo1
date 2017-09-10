@@ -112,9 +112,9 @@ inactive_hysteresis = 1
 
 # There is No AC_PIN in the PRS configuration
 
-HEATER_PIN = 22
+HEATER_PIN = 17
 AC_PIN = 00
-FAN_PIN = 17
+FAN_PIN = 22
 
 # Number of seconds that the fan should run right after stopping the
 # Heater
@@ -127,7 +127,7 @@ enabled = True
 
 #how many degrees the indoor temperature can stray from the target
 #before sending alert email
-errorThreshold = 5.0
+error_threshold = 5.0
 
 #additional mail config (servers and such) is done in mailconf.txt
 

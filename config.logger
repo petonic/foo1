@@ -1,3 +1,9 @@
+#####################
+##
+## Top-Level Defs
+##
+#####################
+
 [formatters]
 keys: detailed,simple
 
@@ -7,11 +13,23 @@ keys: console,file_root,file_thermod,file_websrvd,file_getTemp
 [loggers]
 keys: root,thermod,websrvd,api
 
+#####################
+##
+## Formatters
+##
+#####################
+
 [formatter_simple]
 format: %(levelname)s: %(message)s
 
 [formatter_detailed]
 format: %(module)s:%(levelname)s:%(asctime)s:%(funcName)s(): %(message)s
+
+#####################
+##
+## Handlers
+##
+#####################
 
 [handler_console]
 class: StreamHandler
@@ -34,12 +52,20 @@ level: WARNING
 class: FileHandler
 args: ['lwebsrvd.log']
 formatter: detailed
+level: DEBUG
 
 [handler_file_getTemp]
 class: FileHandler
 level: DEBUG
 args: ['lgetTemp.log']
 formatter: detailed
+
+#####################
+##
+## Loggers
+##
+#####################
+
 
 [logger_root]
 level: WARNING
