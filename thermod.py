@@ -1,4 +1,5 @@
 #! /usr/bin/env python3
+#
 """thermod.py
 
 Usage:
@@ -9,6 +10,11 @@ Usage:
   Options:
     -h --help     Show this screen.
 """
+
+# This is to set up the auto indent to 4.
+def dummy_funct():
+    pass
+
 """
 This is the THERMOD daemon that is part of the Pithy thermostat.
 
@@ -53,6 +59,7 @@ import logging
 
 import wiringpi
 
+      #
 # ----------------------------------
 # - Read config                    -
 # ----------------------------------
@@ -359,7 +366,7 @@ def run():
     except IOError:
         pass
 
-    # change cwd to wherever websrvrd is
+    # change cwd to whatever directory thermod.py is in
     abspath = os.path.abspath(__file__)
     dname = os.path.dirname(abspath)
     os.chdir(dname)
@@ -430,9 +437,10 @@ def run():
         # heat_mode -- check if beyond tolerance
         # it's 72, we want it to be 78, and the error threshold is 5 = this
         # triggers
-        if mailEnabled == True and (mailElapsed > timedelta(minutes=20)) and \
-            (float(target_temp) - indoor_temp) > error_threshold:
-            sendErrorMail('Heat beyond threshold ({} - {} = {} > {}'.format(
+        if ((mailEnabled == True) and (mailElapsed > timedelta(minutes=20) and
+            (float(target_temp) - indoor_temp) > error_threshold) and
+            (switch_mode == 'heat')):
+            sendErrorMail('Heat beyond threshold ({} - {} = {}) > {}'.format(
                 target_temp, indoor_temp,
                 float(target_temp) - indoor_temp, error_threshold))
             lastMail = datetime.now()
@@ -469,7 +477,7 @@ def run():
                     hvac_state = hvac_all_off()
         elif switch_mode == 'fan':
             hvac_state = hvac_fan()
-        else:
+        else: # switch_mode == 'off'
             #
             # The switch_mode is "off", so we have to check if the hvac_state is actually
             # off as well.  If not, then we have to turn it off.
@@ -478,8 +486,9 @@ def run():
                 log_fatal("Invalid switch_mode <{}>".format(switch_mode))
                 assert (switch_mode == "off")
 
-            log.debug('Turning system off, previous hvac_state = {}'.format(
-                        hvac_state))
+            if hvac_state != 'off':
+                log.info('Turning system off, previous hvac_state = {}'.format(
+                            hvac_state))
 
             if hvac_state == 'heat':  # Heating is on, turn it off
                 log.info("STATE: switch is off, turning off heat and fan")
@@ -506,12 +515,20 @@ def run():
             dpv("switch_mode") +
             dpv("hvac_state ") +
             dpv("indoor_temp") +
+            # dpv("lastTemp") +
+            # dpv("lastHumid") +
             dpv("heat_status") +
             dpv("fan_status "))
 
 
         time.sleep(5)
+        # Use these values in case we can't fetch them from the
+        # thermostat for mail error logging.
+        lastTemp = indoor_temp
+        lastHumid = humidity
 
+lastTemp = 0.0
+lastHumid = 0.0
 
 def releaseGPIO():
     log.info('Releasing all GPIO Connections')
@@ -531,6 +548,7 @@ if __name__ == "__main__":
     if args['releaseGPIO']:
         print('Releasing GPIO pins heat ({}) and fan ({})'.format(
             HEATER_PIN, FAN_PIN))
+        releaseGPIO()
         sys.exit(0)
 
     log.info("\n***\n*** Starting thermod at {}, debug is {},"

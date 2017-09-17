@@ -46,7 +46,7 @@ formatter: detailed
 class: FileHandler
 args: ['lthermod.log']
 formatter: detailed
-level: WARNING
+level: DEBUG
 
 [handler_file_websrvd]
 class: FileHandler
@@ -66,6 +66,11 @@ formatter: detailed
 ##
 #####################
 
+## Example of using two log handers... use a comma.
+#[logger_thermod]
+#level: DEBUG
+#qualname: com.petonic.pithy.thermod
+#handlers: console,file_thermod
 
 [logger_root]
 level: WARNING
@@ -74,7 +79,7 @@ handlers: file_root
 [logger_thermod]
 level: DEBUG
 qualname: com.petonic.pithy.thermod
-handlers: console
+handlers: console,file_thermod
 
 [logger_websrvd]
 level: DEBUG
