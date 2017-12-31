@@ -29,8 +29,6 @@ import sys
 humid = 50
 
 
-# bp()
-
 def pusage():
     print("Usage:\t{} <temp<float>> [<humid(int)>]".format(argv[0]),
           file=sys.stderr)
@@ -69,7 +67,6 @@ if len(argv) == 2:
              format(thfLockfile, tfile, repr(e)))
             sys.exit(3)
         except FileNotFoundError:
-            "DBG:********"; from pdb import set_trace as bp; bp(); "***************************"
             print('THF debug file doesn\'t exist: {}'.format(tfile))
         except IOError as e:
             logging.fatal('Read: IO Error on THF debug file ({}): {}'.

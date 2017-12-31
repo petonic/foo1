@@ -259,6 +259,7 @@ def hvac_idle_fan():
     log.debug(".....\tfan_to_idle: going to sleep for {} seconds".format(
         fan_idle_time))
     time.sleep(fan_idle_time)
+    return 'idle'
 
 def hvac_all_off():
     pgpio(HEATER_PIN, wiringpi.HIGH)
@@ -467,7 +468,7 @@ def run():
                              'hvac_state = {}'.format(lnow(), hvac_state))
                     hvac_state = hvac_heat()
             # If we've reached temp to get to, shut the heat and fan down.
-            elif hvac_state == 1:  # heating
+            elif hvac_state == 'heat':  # heating
                 if indoor_temp > target_temp + active_hysteresis:
                     log.info('STATE: Switching to fan idle at {}, '
                              'hvac_state = {}'.format(lnow(), hvac_state))
